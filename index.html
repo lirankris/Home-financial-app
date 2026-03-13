@@ -1365,6 +1365,7 @@ auth.onAuthStateChanged((user) => {
       renderDashboard();
     }
   } else {
+    authInitialized = false;
     showLoginScreen();
     handleEmailLinkSignIn();
   }
