@@ -2060,6 +2060,8 @@ function importBankFile() {
 
     const debitAmt = parseBankAmount(row[amountCol]);
     const creditAmt = creditCol >= 0 ? parseBankAmount(row[creditCol]) : 0;
+    // Skip rows with no amount at all
+    if (!debitAmt && !creditAmt) return;
     const desc = descCol >= 0 ? String(row[descCol] || '').trim() : '';
     // Use per-row category assignment from preview dropdowns
     let category = (bankImportData.rowCategories && bankImportData.rowCategories[idx]) || '';
