@@ -529,6 +529,10 @@ body.sidebar-open { overflow: hidden; }
   transition: opacity 0.2s;
 }
 .del-btn:hover { opacity: 1; }
+.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; transition: color 0.2s; }
+.sortable-th:hover { color: var(--accent); }
+.sort-indicator { font-size: 0.75em; opacity: 0.4; margin-right: 2px; }
+.sort-indicator.active { opacity: 1; color: var(--accent); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
@@ -968,7 +972,16 @@ body.sidebar-open { overflow: hidden; }
       </div>
       <div class="table-card">
         <table>
-          <thead><tr><th>תאריך</th><th>תיאור</th><th>קטגוריה</th><th>מי</th><th>אמצעי</th><th>מקור</th><th>סכום</th><th></th></tr></thead>
+          <thead><tr>
+            <th class="sortable-th" onclick="sortTxTable('date')">תאריך <span id="sort-ind-date" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('desc')">תיאור <span id="sort-ind-desc" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('category')">קטגוריה <span id="sort-ind-category" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('who')">מי <span id="sort-ind-who" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('method')">אמצעי <span id="sort-ind-method" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('source')">מקור <span id="sort-ind-source" class="sort-indicator">⇅</span></th>
+            <th class="sortable-th" onclick="sortTxTable('amount')">סכום <span id="sort-ind-amount" class="sort-indicator">⇅</span></th>
+            <th></th>
+          </tr></thead>
           <tbody id="tx-table"></tbody>
         </table>
       </div>
@@ -1230,13 +1243,14 @@ body.sidebar-open { overflow: hidden; }
             <option value="edit_cashflow">עריכת תזרים</option>
             <option value="bank_import">ייבוא קובץ בנק</option>
             <option value="import_data">ייבוא נתונים</option>
+            <option value="undo">ביטול פעולה</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="clearLogs()">🗑️ נקה יומן</button>
         </div>
       </div>
       <div class="table-card">
         <table>
-          <thead><tr><th>תאריך ושעה</th><th>פעולה</th><th>פירוט</th></tr></thead>
+          <thead><tr><th>תאריך ושעה</th><th>פעולה</th><th>פירוט</th><th style="width:40px;"></th></tr></thead>
           <tbody id="logs-table"></tbody>
         </table>
       </div>
@@ -1259,7 +1273,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-const ALLOWED_EMAILS = ['liran@adis-tech.com'];
+const ALLOWED_EMAILS = ['liran@adis-tech.com', 'lirankris@adis-tech.com'];
 
 function showLoginScreen() {
   document.getElementById('login-screen').classList.remove('hidden');
@@ -1576,14 +1590,108 @@ const LOG_ACTION_LABELS = {
   add_agg_sector:'הוספת מגזר', edit_agg_sector:'עריכת מגזר', delete_agg_sector:'מחיקת מגזר',
   add_agg_cat:'שיוך קטגוריה', remove_agg_cat:'הסרת שיוך',
   edit_budget:'עדכון תקציב', edit_cashflow:'עריכת תזרים',
-  bank_import:'ייבוא קובץ בנק', import_data:'ייבוא נתונים'
+  bank_import:'ייבוא קובץ בנק', import_data:'ייבוא נתונים',
+  undo:'ביטול פעולה'
 };
 
-function logActivity(action, detail) {
+function logActivity(action, detail, rev) {
   if (!data.activityLog) data.activityLog = [];
-  data.activityLog.push({ ts: Date.now(), action, detail });
+  const entry = { ts: Date.now(), action, detail };
+  if (rev) entry.rev = rev;
+  data.activityLog.push(entry);
   if (data.activityLog.length > 500) data.activityLog = data.activityLog.slice(-500);
   saveData();
+}
+
+function reverseLog(logIdx) {
+  const log = data.activityLog[logIdx];
+  if (!log || !log.rev || log.reversed) { showToast('לא ניתן לבטל פעולה זו'); return; }
+  if (!confirm('לבטל פעולה זו?\n' + log.detail)) return;
+  const rev = log.rev;
+  try {
+    switch(log.action) {
+      case 'add_tx':
+        data.transactions = data.transactions.filter(t => t.id !== rev.txId);
+        break;
+      case 'delete_tx':
+        data.transactions.push(rev.tx);
+        break;
+      case 'edit_tx': {
+        const t = data.transactions.find(tx => tx.id === rev.txId);
+        if (t) Object.assign(t, rev.old);
+        break;
+      }
+      case 'bank_import':
+        data.transactions = data.transactions.filter(t => !rev.txIds.includes(t.id));
+        break;
+      case 'edit_budget':
+        Object.entries(rev.old).forEach(([k, v]) => { data.budgets[k] = v; });
+        break;
+      case 'add_saving':
+        data.savings = data.savings.filter(s => s.name !== rev.name);
+        break;
+      case 'edit_saving': {
+        const sv = data.savings.find(s => s.name === rev.name);
+        if (sv) Object.assign(sv, rev.old);
+        break;
+      }
+      case 'delete_saving':
+        data.savings.splice(rev.idx, 0, rev.saving);
+        break;
+      case 'add_agg_sector':
+        delete data[rev.key][rev.name];
+        break;
+      case 'edit_agg_sector':
+        data[rev.key][rev.oldName] = data[rev.key][rev.newName];
+        delete data[rev.key][rev.newName];
+        break;
+      case 'delete_agg_sector':
+        if (!data[rev.key]) data[rev.key] = {};
+        data[rev.key][rev.name] = rev.cats;
+        break;
+      case 'add_agg_cat':
+        if (data[rev.key][rev.sector]) data[rev.key][rev.sector] = data[rev.key][rev.sector].filter(c => c !== rev.cat);
+        break;
+      case 'remove_agg_cat':
+        if (data[rev.key][rev.sector]) data[rev.key][rev.sector].push(rev.cat);
+        break;
+      case 'add_cat':
+        if (data.categories[rev.type]) data.categories[rev.type] = data.categories[rev.type].filter(c => c.name !== rev.name);
+        break;
+      case 'edit_cat':
+        if (data.categories[rev.type] && data.categories[rev.type][rev.idx]) {
+          data.categories[rev.type][rev.idx].name = rev.oldName;
+          data.transactions.forEach(t => { if (t.category === rev.newName) t.category = rev.oldName; });
+          [data.aggregationSectors, data.incomeAggSectors].forEach(sectors => {
+            Object.values(sectors || {}).forEach(cats => {
+              const i = cats.indexOf(rev.newName);
+              if (i !== -1) cats[i] = rev.oldName;
+            });
+          });
+        }
+        break;
+      case 'delete_cat':
+        if (!data.categories[rev.type]) data.categories[rev.type] = [];
+        data.categories[rev.type].splice(rev.idx, 0, rev.cat);
+        break;
+      case 'edit_cashflow':
+        if (rev.oldVal !== undefined) data.cashflowEdits[rev.cfKey] = rev.oldVal;
+        else delete data.cashflowEdits[rev.cfKey];
+        break;
+      default:
+        showToast('סוג פעולה לא נתמך לביטול');
+        return;
+    }
+    log.reversed = true;
+    delete log.rev;
+    saveData();
+    logActivity('undo', `ביטול: ${log.detail}`);
+    renderLogs();
+    showToast('↩️ הפעולה בוטלה בהצלחה');
+  } catch(e) {
+    console.error('Reverse failed:', e);
+    showToast('שגיאה בביטול הפעולה');
+  }
 }
 
 // ===== NAVIGATION =====
@@ -1848,7 +1956,7 @@ function addTransaction() {
   };
   data.transactions.push(tx);
   saveData();
-  logActivity('add_tx', `הוספת ${currentTxType==='income'?'הכנסה':'הוצאה'}: ${tx.category} ₪${tx.amount}`);
+  logActivity('add_tx', `הוספת ${currentTxType==='income'?'הכנסה':'הוצאה'}: ${tx.category} ₪${tx.amount}`, {txId: tx.id});
   clearForm();
   showToast('✅ התנועה נשמרה בהצלחה!');
 }
@@ -2298,6 +2406,7 @@ function importBankFile() {
 
   const baseId = Date.now();
   let added = 0;
+  const addedIds = [];
   const existingIds = new Set(data.transactions.map(t => t.id));
 
   rows.forEach((row, idx) => {
@@ -2340,11 +2449,12 @@ function importBankFile() {
       subcategory: '', who: owner, method, desc,
       notes: 'ייבוא: ' + sourceLabel, source: sourceLabel
     });
+    addedIds.push(id);
     added++;
   });
 
   saveData();
-  logActivity('bank_import', `ייבוא ${added} תנועות מ${sourceLabel}`);
+  logActivity('bank_import', `ייבוא ${added} תנועות מ${sourceLabel}`, addedIds.length ? {txIds: addedIds} : null);
   showToast(`✅ יובאו ${added} תנועות מ${sourceLabel}!`);
   cancelBankImport();
 }
@@ -2359,6 +2469,34 @@ function cancelBankImport() {
 }
 
 // ===== TRANSACTIONS =====
+let txSortCol = 'date';
+let txSortDir = 'desc'; // 'asc' or 'desc'
+
+function sortTxTable(col) {
+  if (txSortCol === col) {
+    txSortDir = txSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    txSortCol = col;
+    txSortDir = col === 'amount' || col === 'date' ? 'desc' : 'asc';
+  }
+  renderTransactions();
+}
+
+function updateSortIndicators() {
+  const cols = ['date','desc','category','who','method','source','amount'];
+  cols.forEach(c => {
+    const el = document.getElementById('sort-ind-' + c);
+    if (!el) return;
+    if (c === txSortCol) {
+      el.className = 'sort-indicator active';
+      el.textContent = txSortDir === 'asc' ? '▲' : '▼';
+    } else {
+      el.className = 'sort-indicator';
+      el.textContent = '⇅';
+    }
+  });
+}
+
 function renderTransactions() {
   const filterCat = document.getElementById('filter-cat').value;
   const filterWho = document.getElementById('filter-who').value;
@@ -2376,7 +2514,36 @@ function renderTransactions() {
   if (filterWho) filtered = filtered.filter(t => t.who === filterWho);
   if (filterType) filtered = filtered.filter(t => t.type === filterType);
   if (filterSource) filtered = filtered.filter(t => t.source === filterSource);
-  filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  // Sort by selected column
+  const dir = txSortDir === 'asc' ? 1 : -1;
+  filtered.sort((a, b) => {
+    let va, vb;
+    switch(txSortCol) {
+      case 'date':
+        return dir * (new Date(a.date) - new Date(b.date));
+      case 'amount':
+        return dir * (a.amount - b.amount);
+      case 'desc':
+        va = (a.desc || '').toLowerCase(); vb = (b.desc || '').toLowerCase();
+        return dir * va.localeCompare(vb, 'he');
+      case 'category':
+        va = (a.category || '').toLowerCase(); vb = (b.category || '').toLowerCase();
+        return dir * va.localeCompare(vb, 'he');
+      case 'who':
+        va = (a.who || '').toLowerCase(); vb = (b.who || '').toLowerCase();
+        return dir * va.localeCompare(vb, 'he');
+      case 'method':
+        va = (a.method || '').toLowerCase(); vb = (b.method || '').toLowerCase();
+        return dir * va.localeCompare(vb, 'he');
+      case 'source':
+        va = (a.source || '').toLowerCase(); vb = (b.source || '').toLowerCase();
+        return dir * va.localeCompare(vb, 'he');
+      default:
+        return 0;
+    }
+  });
+  updateSortIndicators();
 
   // Aggregation
   const aggField = document.getElementById('agg-field').value;
@@ -2457,9 +2624,10 @@ function renderTransactions() {
 function deleteTx(id) {
   if (!confirm('למחוק תנועה זו?')) return;
   const tx = data.transactions.find(t => t.id === id);
+  const txCopy = tx ? {...tx} : null;
   data.transactions = data.transactions.filter(t => t.id !== id);
   saveData();
-  logActivity('delete_tx', `מחיקת תנועה: ${tx ? tx.desc || tx.category : ''} ₪${tx ? tx.amount : ''}`);
+  logActivity('delete_tx', `מחיקת תנועה: ${tx ? tx.desc || tx.category : ''} ₪${tx ? tx.amount : ''}`, txCopy ? {tx: txCopy} : null);
   renderTransactions();
   showToast('התנועה נמחקה');
 }
@@ -2565,6 +2733,7 @@ function saveEditTx() {
   const id = Number(document.getElementById('edit-tx-id').value);
   const t = data.transactions.find(tx => tx.id === id);
   if (!t) return;
+  const oldData = {date: t.date, amount: t.amount, desc: t.desc, type: t.type, category: t.category, subcategory: t.subcategory, who: t.who, method: t.method, source: t.source, notes: t.notes};
   t.date = document.getElementById('edit-tx-date').value;
   t.amount = parseFloat(document.getElementById('edit-tx-amount').value) || 0;
   t.desc = document.getElementById('edit-tx-desc').value.trim();
@@ -2576,7 +2745,7 @@ function saveEditTx() {
   t.source = document.getElementById('edit-tx-source').value;
   t.notes = document.getElementById('edit-tx-notes').value.trim();
   saveData();
-  logActivity('edit_tx', `עריכת תנועה: ${t.desc || t.category} ₪${t.amount}`);
+  logActivity('edit_tx', `עריכת תנועה: ${t.desc || t.category} ₪${t.amount}`, {txId: id, old: oldData});
   closeEditTx();
   renderTransactions();
   showToast('התנועה עודכנה');
@@ -2622,13 +2791,17 @@ function renderBudget() {
 
 function saveBudgets() {
   const changedBudgets = [];
+  const oldBudgets = {};
   document.querySelectorAll('.budget-input').forEach(inp => {
     const val = parseFloat(inp.value) || 0;
-    if (data.budgets[inp.dataset.cat] !== val) changedBudgets.push(`${inp.dataset.cat}: ₪${val}`);
+    if (data.budgets[inp.dataset.cat] !== val) {
+      oldBudgets[inp.dataset.cat] = data.budgets[inp.dataset.cat] || 0;
+      changedBudgets.push(`${inp.dataset.cat}: ₪${val}`);
+    }
     data.budgets[inp.dataset.cat] = val;
   });
   saveData();
-  if (changedBudgets.length) logActivity('edit_budget', `עדכון תקציב: ${changedBudgets.join(', ')}`);
+  if (changedBudgets.length) logActivity('edit_budget', `עדכון תקציב: ${changedBudgets.join(', ')}`, {old: oldBudgets});
   renderBudget();
   showToast('✅ התקציב נשמר!');
 }
@@ -2716,7 +2889,7 @@ function addSaving() {
     updated: today
   });
   saveData();
-  logActivity('add_saving', `הוספת חיסכון: ${name}`);
+  logActivity('add_saving', `הוספת חיסכון: ${name}`, {name});
   renderSavings();
   document.getElementById('sav-name').value = '';
   document.getElementById('sav-original').value = '';
@@ -2745,13 +2918,14 @@ function saveEditSav() {
   const idx = parseInt(document.getElementById('edit-sav-idx').value);
   const sv = data.savings[idx];
   if (!sv) return;
+  const oldSv = {name: sv.name, original: sv.original, current: sv.current, liquid: sv.liquid, updated: sv.updated};
   sv.name = document.getElementById('edit-sav-name').value.trim();
   sv.original = parseFloat(document.getElementById('edit-sav-original').value) || 0;
   sv.current = parseFloat(document.getElementById('edit-sav-current').value) || 0;
   sv.liquid = document.getElementById('edit-sav-liquid').value || '';
   sv.updated = document.getElementById('edit-sav-updated').value || '';
   saveData();
-  logActivity('edit_saving', `עריכת חיסכון: ${sv.name}`);
+  logActivity('edit_saving', `עריכת חיסכון: ${sv.name}`, {name: sv.name, old: oldSv});
   closeEditSav();
   renderSavings();
   showToast('החיסכון עודכן');
@@ -2759,10 +2933,12 @@ function saveEditSav() {
 
 function deleteSav(idx) {
   if (!confirm('למחוק חיסכון זה?')) return;
-  const svName = data.savings[idx]?.name || '';
+  const sv = data.savings[idx];
+  const svCopy = sv ? {...sv} : null;
+  const svName = sv?.name || '';
   data.savings.splice(idx, 1);
   saveData();
-  logActivity('delete_saving', `מחיקת חיסכון: ${svName}`);
+  logActivity('delete_saving', `מחיקת חיסכון: ${svName}`, svCopy ? {idx, saving: svCopy} : null);
   renderSavings();
   showToast('החיסכון נמחק');
 }
@@ -2817,7 +2993,9 @@ const LOG_PAGE_SIZE = 20;
 
 function renderLogs() {
   const filter = document.getElementById('log-filter').value;
-  let logs = [...(data.activityLog || [])].reverse();
+  const allLogs = data.activityLog || [];
+  // Build reversed list with original indices
+  let logs = allLogs.map((l, i) => ({...l, _idx: i})).reverse();
   if (filter) logs = logs.filter(l => l.action === filter);
 
   const totalPages = Math.max(1, Math.ceil(logs.length / LOG_PAGE_SIZE));
@@ -2827,7 +3005,7 @@ function renderLogs() {
 
   const tbody = document.getElementById('logs-table');
   if (logs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:30px;">אין רשומות ביומן</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">אין רשומות ביומן</td></tr>';
   } else {
     tbody.innerHTML = pageLogs.map(l => {
       const d = new Date(l.ts);
@@ -2838,10 +3016,15 @@ function renderLogs() {
       const mi = String(d.getMinutes()).padStart(2,'0');
       const dateStr = `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
       const label = LOG_ACTION_LABELS[l.action] || l.action;
-      return `<tr>
+      const canUndo = l.rev && !l.reversed;
+      const undoBtn = canUndo
+        ? `<button class="del-btn" onclick="reverseLog(${l._idx})" title="ביטול פעולה" style="color:var(--accent);font-size:1.1em;">↩️</button>`
+        : (l.reversed ? `<span style="font-size:0.75em;color:var(--text-muted);">בוטל</span>` : '');
+      return `<tr${l.reversed ? ' style="opacity:0.5;"' : ''}>
         <td style="white-space:nowrap;font-size:0.85em;color:var(--text-muted);">${dateStr}</td>
         <td><span class="cat-badge" style="font-size:0.8em;">${label}</span></td>
         <td style="font-size:0.88em;">${l.detail || ''}</td>
+        <td style="width:40px;text-align:center;">${undoBtn}</td>
       </tr>`;
     }).join('');
   }
@@ -2923,7 +3106,7 @@ function addAggSector(aggType) {
   if (data[key][name]) { showToast('מגזר כבר קיים'); return; }
   data[key][name] = [];
   saveData();
-  logActivity('add_agg_sector', `הוספת מגזר צבירה: ${name}`);
+  logActivity('add_agg_sector', `הוספת מגזר צבירה: ${name}`, {key, name});
   renderAggregationSectors();
   document.getElementById(inputId).value = '';
   showToast('✅ מגזר נוסף!');
@@ -2945,7 +3128,7 @@ function editAggSectorName(aggType, oldName, el) {
       data[key][newName] = data[key][oldName];
       delete data[key][oldName];
       saveData();
-      logActivity('edit_agg_sector', `שינוי שם מגזר: ${oldName} → ${newName}`);
+      logActivity('edit_agg_sector', `שינוי שם מגזר: ${oldName} → ${newName}`, {key, oldName, newName});
     }
     renderAggregationSectors();
   }
@@ -2958,9 +3141,11 @@ function editAggSectorName(aggType, oldName, el) {
 
 function deleteAggSector(aggType, name) {
   if (!confirm('למחוק מגזר זה?')) return;
-  delete data[getAggKey(aggType)][name];
+  const key = getAggKey(aggType);
+  const cats = data[key][name] ? [...data[key][name]] : [];
+  delete data[key][name];
   saveData();
-  logActivity('delete_agg_sector', `מחיקת מגזר: ${name}`);
+  logActivity('delete_agg_sector', `מחיקת מגזר: ${name}`, {key, name, cats});
   renderAggregationSectors();
 }
 
@@ -2970,7 +3155,7 @@ function addAggCat(aggType, sector, cat) {
   if (!data[key][sector].includes(cat)) {
     data[key][sector].push(cat);
     saveData();
-    logActivity('add_agg_cat', `הוספת ${cat} למגזר ${sector}`);
+    logActivity('add_agg_cat', `הוספת ${cat} למגזר ${sector}`, {key, sector, cat});
     renderAggregationSectors();
   }
 }
@@ -2980,7 +3165,7 @@ function removeAggCat(aggType, sector, cat) {
   if (!data[key][sector]) return;
   data[key][sector] = data[key][sector].filter(c => c !== cat);
   saveData();
-  logActivity('remove_agg_cat', `הסרת ${cat} ממגזר ${sector}`);
+  logActivity('remove_agg_cat', `הסרת ${cat} ממגזר ${sector}`, {key, sector, cat});
   renderAggregationSectors();
 }
 
@@ -2991,7 +3176,7 @@ function addCategory() {
   if (!data.categories[type]) data.categories[type] = [];
   data.categories[type].push({name, subs:[]});
   saveData();
-  logActivity('add_cat', `הוספת קטגוריה: ${name} (${type})`);
+  logActivity('add_cat', `הוספת קטגוריה: ${name} (${type})`, {type, name});
   renderSettings();
   document.getElementById('new-cat').value = '';
   showToast('✅ קטגוריה נוספה!');
@@ -3020,7 +3205,7 @@ function editCatName(type, idx, spanEl) {
       data.transactions.forEach(t => { if (t.category === oldName) t.category = newName; });
       data.categories[type][idx].name = newName;
       saveData();
-      logActivity('edit_cat', `שינוי שם קטגוריה: ${oldName} → ${newName}`);
+      logActivity('edit_cat', `שינוי שם קטגוריה: ${oldName} → ${newName}`, {type, idx, oldName, newName});
       showToast('✅ קטגוריה עודכנה!');
     }
     renderSettings();
@@ -3031,10 +3216,12 @@ function editCatName(type, idx, spanEl) {
 
 function deleteCat(type, idx) {
   if (!confirm('למחוק קטגוריה זו?')) return;
-  const catName = data.categories[type][idx]?.name || '';
+  const catObj = data.categories[type][idx];
+  const catCopy = catObj ? {name: catObj.name, subs: [...(catObj.subs || [])]} : null;
+  const catName = catObj?.name || '';
   data.categories[type].splice(idx, 1);
   saveData();
-  logActivity('delete_cat', `מחיקת קטגוריה: ${catName}`);
+  logActivity('delete_cat', `מחיקת קטגוריה: ${catName}`, catCopy ? {type, idx, cat: catCopy} : null);
   renderSettings();
 }
 
@@ -3269,6 +3456,7 @@ function renderCashflow() {
 
 function editCfCell(td, cfKey, currentVal) {
   if (td.querySelector('input')) return; // already editing
+  const oldCfVal = data.cashflowEdits[cfKey];
   const input = document.createElement('input');
   input.type = 'number';
   input.value = currentVal || '';
@@ -3287,7 +3475,7 @@ function editCfCell(td, cfKey, currentVal) {
     const val = parseFloat(input.value);
     if (!isNaN(val) && val >= 0) {
       data.cashflowEdits[cfKey] = val;
-      logActivity('edit_cashflow', `עריכת תזרים: ${cfKey} = ₪${val}`);
+      logActivity('edit_cashflow', `עריכת תזרים: ${cfKey} = ₪${val}`, {cfKey, oldVal: oldCfVal});
     } else {
       delete data.cashflowEdits[cfKey];
     }
