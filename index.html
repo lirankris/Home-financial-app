@@ -1854,7 +1854,7 @@ function renderBankPreview() {
     const amtDisplay = amtNum ? `₪${Math.abs(amtNum).toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '';
     const sel = bankImportData.rowCategories[rowIdx] || '';
 
-    html += `<div class="bank-cat-row" style="display:grid;grid-template-columns:90px 1fr 90px 160px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
+    html += `<div class="bank-cat-row" data-ri="${rowIdx}" style="display:grid;grid-template-columns:90px 1fr 90px 160px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
     html += `<span style="font-size:0.82em;color:var(--text-muted);white-space:nowrap;">${dateStr}</span>`;
     html += `<span style="font-size:0.88em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${desc || '—'}</span>`;
     html += `<span style="font-size:0.85em;font-weight:600;white-space:nowrap;text-align:left;">${amtDisplay}</span>`;
@@ -1887,13 +1887,13 @@ function filterBankCatRows() {
   const filter = document.getElementById('bank-cat-filter').value;
   const catRows = document.querySelectorAll('#bank-cat-list .bank-cat-row');
   catRows.forEach(row => {
-    const rowIdx = parseInt(row.querySelector('.cat-search-wrap')?.dataset.row);
+    const rowIdx = parseInt(row.dataset.ri);
     const cat = bankImportData.rowCategories[rowIdx] || '';
     let show = true;
     if (filter === 'empty') show = !cat;
     else if (filter === 'assigned') show = !!cat;
     else if (filter.startsWith('cat:')) show = cat === filter.slice(4);
-    row.style.display = show ? '' : 'none';
+    row.style.display = show ? 'grid' : 'none';
   });
 }
 
