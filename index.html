@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="seed-data.js"></script>
 <style>
 :root, [data-theme="dark"] {
@@ -567,10 +569,134 @@ body.sidebar-open { overflow: hidden; }
   font-size: 1.1em;
   font-weight: 700;
 }
+/* Auth: hide app until authenticated */
+.app.hidden { display: none !important; }
+
+/* Login screen */
+#login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+  direction: rtl;
+  padding: 20px;
+}
+#login-screen.hidden { display: none !important; }
+
+.login-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--card-shadow);
+  text-align: center;
+}
+.login-logo {
+  font-size: 2em;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin-bottom: 28px;
+}
+.login-card label {
+  display: block;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  margin-bottom: 6px;
+}
+.login-card input[type="email"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 1em;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+.login-card input[type="email"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(22,219,204,0.15);
+}
+#btn-send-link {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #1a1a2e;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+#btn-send-link:hover { opacity: 0.9; }
+#btn-send-link:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-status {
+  margin-top: 16px;
+  font-size: 0.85em;
+  min-height: 20px;
+}
+.login-status.success { color: var(--income); }
+.login-status.error { color: var(--danger); }
+.login-status.info { color: var(--accent); }
+
+/* Sidebar sign-out */
+.sidebar-signout {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+.sidebar-signout small {
+  display: block;
+  color: var(--sidebar-text);
+  font-size: 0.7em;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-signout {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--sidebar-text);
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+.btn-signout:hover {
+  background: rgba(254,92,115,0.15);
+  color: var(--danger);
+  border-color: var(--danger);
+}
 </style>
 </head>
 <body>
-<div class="app">
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">💰 ניהול כספי</div>
+    <p class="login-subtitle">התחברות באמצעות קישור למייל</p>
+    <div id="login-form">
+      <label>כתובת אימייל</label>
+      <input type="email" id="login-email" placeholder="example@email.com" dir="ltr" onkeydown="if(event.key==='Enter')sendMagicLink()">
+      <button id="btn-send-link" onclick="sendMagicLink()">📧 שלח קישור התחברות</button>
+    </div>
+    <div id="login-status" class="login-status"></div>
+  </div>
+</div>
+<div class="app hidden">
   <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="תפריט">☰</button>
   <div class="sidebar-backdrop" onclick="closeSidebar()"></div>
   <aside class="sidebar">
@@ -617,6 +743,10 @@ body.sidebar-open { overflow: hidden; }
         <button onclick="setTheme('light')" id="theme-light" class="theme-btn" title="בהיר">☀️</button>
         <button onclick="setTheme('system')" id="theme-system" class="theme-btn" title="מערכת">💻</button>
       </div>
+    </div>
+    <div class="sidebar-signout">
+      <small id="user-email-display"></small>
+      <button class="btn-signout" onclick="signOutUser()">🚪 התנתקות</button>
     </div>
   </aside>
 
@@ -1117,6 +1247,122 @@ body.sidebar-open { overflow: hidden; }
 </div>
 
 <script>
+// ===== FIREBASE AUTH =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBBehXqmdvLuGIfIQTcNxrhFwY_xFpLtH8",
+  authDomain: "home-financial-app-e4ac1.firebaseapp.com",
+  projectId: "home-financial-app-e4ac1",
+  storageBucket: "home-financial-app-e4ac1.firebasestorage.app",
+  messagingSenderId: "323185018197",
+  appId: "1:323185018197:web:ec50a99fc7ae13b0865bdc"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+const ALLOWED_EMAILS = ['liran@adis-tech.com'];
+
+function showLoginScreen() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.querySelector('.app').classList.add('hidden');
+}
+
+function showApp(user) {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.querySelector('.app').classList.remove('hidden');
+  const emailDisplay = document.getElementById('user-email-display');
+  if (emailDisplay) emailDisplay.textContent = user.email;
+}
+
+function setLoginStatus(msg, type) {
+  const el = document.getElementById('login-status');
+  el.textContent = msg;
+  el.className = 'login-status ' + (type || '');
+}
+
+function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  if (!email) { setLoginStatus('נא להזין כתובת אימייל', 'error'); return; }
+  if (!ALLOWED_EMAILS.includes(email)) {
+    setLoginStatus('כתובת אימייל לא מורשית. פנה למנהל המערכת.', 'error');
+    return;
+  }
+  const actionCodeSettings = {
+    url: window.location.origin + window.location.pathname,
+    handleCodeInApp: true,
+  };
+  const btn = document.getElementById('btn-send-link');
+  btn.disabled = true;
+  btn.textContent = 'שולח...';
+
+  auth.sendSignInLinkToEmail(email, actionCodeSettings)
+    .then(() => {
+      window.localStorage.setItem('emailForSignIn', email);
+      setLoginStatus('קישור התחברות נשלח! בדוק את תיבת המייל שלך.', 'success');
+      btn.textContent = 'נשלח ✓';
+    })
+    .catch((error) => {
+      btn.disabled = false;
+      btn.textContent = '📧 שלח קישור התחברות';
+      if (error.code === 'auth/invalid-email') {
+        setLoginStatus('כתובת אימייל לא תקינה', 'error');
+      } else {
+        setLoginStatus('שגיאה בשליחת הקישור. נסה שוב.', 'error');
+        console.error('sendSignInLink error:', error);
+      }
+    });
+}
+
+function handleEmailLinkSignIn() {
+  if (firebase.auth.isSignInWithEmailLink(window.location.href)) {
+    let email = window.localStorage.getItem('emailForSignIn');
+    if (!email) {
+      email = window.prompt('נא להזין את כתובת האימייל שלך לאימות:');
+    }
+    if (!email) return;
+    setLoginStatus('מאמת...', 'info');
+
+    auth.signInWithEmailLink(email, window.location.href)
+      .then(() => {
+        window.localStorage.removeItem('emailForSignIn');
+        window.history.replaceState(null, '', window.location.pathname);
+      })
+      .catch((error) => {
+        if (error.code === 'auth/invalid-action-code') {
+          setLoginStatus('קישור ההתחברות פג תוקף או כבר שומש. נסה שוב.', 'error');
+        } else {
+          setLoginStatus('שגיאה באימות. נסה שוב.', 'error');
+          console.error('signInWithEmailLink error:', error);
+        }
+      });
+  }
+}
+
+let authInitialized = false;
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    if (ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+      auth.signOut();
+      setLoginStatus('כתובת אימייל לא מורשית.', 'error');
+      return;
+    }
+    showApp(user);
+    if (!authInitialized) {
+      authInitialized = true;
+      renderDashboard();
+    }
+  } else {
+    showLoginScreen();
+    handleEmailLinkSignIn();
+  }
+});
+
+function signOutUser() {
+  if (confirm('האם להתנתק?')) {
+    auth.signOut();
+  }
+}
+// ===== END FIREBASE AUTH =====
+
 // ===== THEME =====
 function setTheme(mode) {
   localStorage.setItem('themeMode', mode);
@@ -3192,7 +3438,7 @@ function closeSidebar() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
 
 // ===== INIT =====
-renderDashboard();
+// renderDashboard() is called by onAuthStateChanged when user is authenticated
 </script>
 </body>
 </html>
