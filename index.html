@@ -1824,14 +1824,26 @@ function renderBankPreview() {
   const assignedCats = [...new Set(bankImportData.rowCategories.filter(c => c))].sort();
   assignedCats.forEach(c => { html += `<option value="cat:${c}">${c}</option>`; });
   html += `</select>`;
-  const emptyCount = bankImportData.rowCategories.filter(c => !c).length;
-  const assignedCount = bankImportData.rowCategories.filter(c => c).length;
+  // Count only rows that have data (desc or amount)
+  let emptyCount = 0, assignedCount = 0;
+  rows.forEach((row, i) => {
+    const d = descCol >= 0 ? String(row[descCol] || '').trim() : '';
+    const a = amountCol >= 0 ? row[amountCol] : '';
+    const cr = parseInt(document.getElementById('map-credit').value);
+    const aCredit = cr >= 0 ? row[cr] : '';
+    const hasData = d || a || aCredit;
+    if (!hasData) return;
+    if (bankImportData.rowCategories[i]) assignedCount++; else emptyCount++;
+  });
   html += `<span style="font-size:0.75em;color:var(--text-muted);">${assignedCount} משויך | ${emptyCount} ריק</span>`;
   html += `</div></div>`;
   html += `<div class="bank-cat-list" id="bank-cat-list" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;">`;
   const creditCol = parseInt(document.getElementById('map-credit').value);
   rows.forEach((row, rowIdx) => {
     const desc = descCol >= 0 ? String(row[descCol] || '').trim() : '';
+    const rawAmt = amountCol >= 0 ? row[amountCol] : '';
+    const rawCredit = creditCol >= 0 ? row[creditCol] : '';
+    if (!desc && !rawAmt && !rawCredit) return; // skip empty rows
     // Format date
     const dateVal = dateCol >= 0 ? row[dateCol] : '';
     let dateStr = '';
