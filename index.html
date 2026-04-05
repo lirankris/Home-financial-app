@@ -3474,7 +3474,7 @@ function renderFixedCashflow(year, fixedMonths) {
       const escapedKey = cfKey.replace(/'/g, "\\'");
 
       if (!isTotal) {
-        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} data-cfkey="${escapedKey}" data-cfval="${displayVal}" onclick="cfCellClick(event,this)" ondblclick="editCfCell(this,'${escapedKey}',${displayVal})">${valFn(displayVal)}</td>`;
+        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} data-cfkey="${escapedKey}" data-cfval="${displayVal}" onclick="cfCellClick(event,this)">${valFn(displayVal)}</td>`;
       } else {
         html += `<td style="text-align:center;" class="${noteClass}"${noteTitle}>${valFn(displayVal)}</td>`;
       }
@@ -3675,15 +3675,14 @@ const cfSelectedCells = new Set();
 let cfBulkBar = null;
 
 function cfCellClick(e, td) {
-  // Prevent if double-click will fire
   if (td.querySelector('.cf-edit-popup')) return;
-  e.stopPropagation();
 
   const cfKey = td.dataset.cfkey;
   if (!cfKey) return;
 
+  // Ctrl+Click = multi-select mode
   if (e.ctrlKey || e.metaKey) {
-    // Toggle selection
+    e.preventDefault();
     if (cfSelectedCells.has(cfKey)) {
       cfSelectedCells.delete(cfKey);
       td.classList.remove('cf-selected');
@@ -3691,24 +3690,14 @@ function cfCellClick(e, td) {
       cfSelectedCells.add(cfKey);
       td.classList.add('cf-selected');
     }
-  } else {
-    // If clicking an already-selected cell alone and it's the only one, open editor
-    if (cfSelectedCells.size === 1 && cfSelectedCells.has(cfKey)) {
-      cfClearSelection();
-      editCfCell(td, cfKey, parseFloat(td.dataset.cfval));
-      return;
-    }
-    // Clear others, select this one
-    cfClearSelection();
-    cfSelectedCells.add(cfKey);
-    td.classList.add('cf-selected');
+    if (cfSelectedCells.size > 1) cfShowBulkBar();
+    else cfHideBulkBar();
+    return;
   }
 
-  if (cfSelectedCells.size > 1) {
-    cfShowBulkBar();
-  } else {
-    cfHideBulkBar();
-  }
+  // Regular click = clear selection + open single editor
+  if (cfSelectedCells.size > 0) cfClearSelection();
+  editCfCell(td, cfKey, parseFloat(td.dataset.cfval));
 }
 
 function cfClearSelection() {
@@ -3785,7 +3774,6 @@ function cfShowBulkBar() {
   cfBulkBar.appendChild(clearBtn);
 
   container.appendChild(cfBulkBar);
-  input.focus();
 }
 
 function cfHideBulkBar() {
