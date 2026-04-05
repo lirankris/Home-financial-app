@@ -3679,6 +3679,11 @@ function renderComputedCashflow(year) {
 // ===== MULTI-SELECT CELLS =====
 const cfSelectedCells = new Set();
 let cfBulkBar = null;
+let cfLastClickedTd = null;
+
+function cfGetAllEditableCells() {
+  return Array.from(document.querySelectorAll('#cf-table td.cf-editable[data-cfkey]'));
+}
 
 function cfCellClick(e, td) {
   if (td.querySelector('.cf-edit-popup')) return;
@@ -3686,7 +3691,29 @@ function cfCellClick(e, td) {
   const cfKey = td.dataset.cfkey;
   if (!cfKey) return;
 
-  // Ctrl+Click = multi-select mode
+  // Shift+Click = range select from last clicked cell
+  if (e.shiftKey && cfLastClickedTd) {
+    e.preventDefault();
+    const allCells = cfGetAllEditableCells();
+    const startIdx = allCells.indexOf(cfLastClickedTd);
+    const endIdx = allCells.indexOf(td);
+    if (startIdx !== -1 && endIdx !== -1) {
+      const from = Math.min(startIdx, endIdx);
+      const to = Math.max(startIdx, endIdx);
+      for (let i = from; i <= to; i++) {
+        const cell = allCells[i];
+        const key = cell.dataset.cfkey;
+        if (key) {
+          cfSelectedCells.add(key);
+          cell.classList.add('cf-selected');
+        }
+      }
+    }
+    if (cfSelectedCells.size > 1) cfShowBulkBar();
+    return;
+  }
+
+  // Ctrl+Click = toggle single cell in selection
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault();
     if (cfSelectedCells.has(cfKey)) {
@@ -3696,6 +3723,7 @@ function cfCellClick(e, td) {
       cfSelectedCells.add(cfKey);
       td.classList.add('cf-selected');
     }
+    cfLastClickedTd = td;
     if (cfSelectedCells.size > 1) cfShowBulkBar();
     else cfHideBulkBar();
     return;
@@ -3703,12 +3731,14 @@ function cfCellClick(e, td) {
 
   // Regular click = clear selection + open single editor
   if (cfSelectedCells.size > 0) cfClearSelection();
+  cfLastClickedTd = td;
   editCfCell(td, cfKey, parseFloat(td.dataset.cfval));
 }
 
 function cfClearSelection() {
   document.querySelectorAll('.cf-selected').forEach(el => el.classList.remove('cf-selected'));
   cfSelectedCells.clear();
+  cfLastClickedTd = null;
   cfHideBulkBar();
 }
 
