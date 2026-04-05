@@ -3742,20 +3742,31 @@ function cfShowBulkBar() {
     }
   });
 
+  const noteArea = document.createElement('textarea');
+  noteArea.placeholder = 'הערה (תחול על כל התאים)...';
+  noteArea.rows = 2;
+  noteArea.style.cssText = 'width:100%;padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:inherit;font-size:0.85em;box-sizing:border-box;resize:vertical;';
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'cf-bulk-save';
   saveBtn.textContent = 'החל על הכל';
   saveBtn.addEventListener('click', () => {
     const raw = input.value.trim();
     const val = evalExpr(raw);
-    if (isNaN(val)) return;
+    const noteVal = noteArea.value.trim();
+    if (isNaN(val) && !noteVal) return;
     const isFormula = raw.includes('+') || raw.includes('-', 1) || raw.includes('*') || raw.includes('/');
     cfSelectedCells.forEach(cfKey => {
-      data.cashflowEdits[cfKey] = val;
-      if (isFormula) data.cashflowFormulas[cfKey] = raw;
-      else delete data.cashflowFormulas[cfKey];
+      if (!isNaN(val)) {
+        data.cashflowEdits[cfKey] = val;
+        if (isFormula) data.cashflowFormulas[cfKey] = raw;
+        else delete data.cashflowFormulas[cfKey];
+      }
+      if (noteVal) {
+        data.cashflowNotes[cfKey] = noteVal;
+      }
     });
-    logActivity('edit_cashflow', `עריכה מרובה: ${cfSelectedCells.size} תאים = ₪${val}`, {});
+    logActivity('edit_cashflow', `עריכה מרובה: ${cfSelectedCells.size} תאים`, {});
     saveData();
     cfSelectedCells.clear();
     cfHideBulkBar();
@@ -3775,6 +3786,7 @@ function cfShowBulkBar() {
   cfBulkBar.appendChild(countSpan);
   cfBulkBar.appendChild(input);
   cfBulkBar.appendChild(preview);
+  cfBulkBar.appendChild(noteArea);
   cfBulkBar.appendChild(btnRow);
 
   const overlay = document.createElement('div');
