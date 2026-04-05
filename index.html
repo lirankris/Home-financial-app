@@ -570,7 +570,7 @@ body.sidebar-open { overflow: hidden; }
 .cf-note::after { content: '📝'; position: absolute; top: 1px; left: 2px; font-size: 0.55em; opacity: 0.7; }
 .cf-note:hover::after { opacity: 1; }
 .cf-note[title] { cursor: help; }
-.cf-bulk-bar { position: sticky; bottom: 0; background: var(--card-bg); border-top: 2px solid var(--accent); padding: 8px 16px; display: flex; align-items: center; gap: 10px; z-index: 100; direction: rtl; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); }
+.cf-bulk-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 2px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 12px; z-index: 9999; direction: rtl; box-shadow: 0 -4px 16px rgba(0,0,0,0.4); }
 .cf-bulk-bar input { width: 180px; padding: 6px 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.9em; direction: ltr; text-align: center; }
 .cf-bulk-bar .cf-bulk-preview { font-size: 0.8em; color: var(--text-muted); min-width: 80px; direction: ltr; }
 .cf-bulk-bar button { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.85em; }
@@ -3708,8 +3708,6 @@ function cfClearSelection() {
 
 function cfShowBulkBar() {
   cfHideBulkBar();
-  const table = document.getElementById('cf-table');
-  const container = table.parentElement;
 
   cfBulkBar = document.createElement('div');
   cfBulkBar.className = 'cf-bulk-bar';
@@ -3773,7 +3771,7 @@ function cfShowBulkBar() {
   cfBulkBar.appendChild(saveBtn);
   cfBulkBar.appendChild(clearBtn);
 
-  container.appendChild(cfBulkBar);
+  document.body.appendChild(cfBulkBar);
 }
 
 function cfHideBulkBar() {
