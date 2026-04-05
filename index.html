@@ -1553,6 +1553,7 @@ if (!data.incomeAggSectors) {
 })();
 if (!data.cashflowEdits) { data.cashflowEdits = {}; saveData(); }
 if (!data.cashflowNotes) { data.cashflowNotes = {}; saveData(); }
+if (!data.cashflowFormulas) { data.cashflowFormulas = {}; saveData(); }
 if (!data.activityLog) { data.activityLog = []; saveData(); }
 
 // One-time migration: fix bank-imported dates that are off by 1 day
@@ -3678,16 +3679,21 @@ function editCfCell(td, cfKey, currentVal) {
     minWidth: '160px', direction: 'rtl'
   });
 
+  const savedFormula = data.cashflowFormulas[cfKey];
   const input = document.createElement('input');
-  input.type = 'number';
-  input.value = currentVal || '';
-  input.step = '0.01';
-  input.placeholder = 'סכום';
+  input.type = 'text';
+  input.value = savedFormula || currentVal || '';
+  input.placeholder = 'סכום (למשל 100+200-50)';
   Object.assign(input.style, {
-    width: '100%', textAlign: 'center', padding: '4px 6px', marginBottom: '6px',
+    width: '100%', textAlign: 'center', padding: '4px 6px', marginBottom: '2px',
     background: 'var(--input-bg)', border: '1px solid var(--border)',
     color: 'var(--text)', borderRadius: '4px', fontFamily: 'inherit', fontSize: '0.85em',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box', direction: 'ltr'
+  });
+  const preview = document.createElement('div');
+  Object.assign(preview.style, {
+    textAlign: 'center', fontSize: '0.75em', color: 'var(--text-muted)',
+    marginBottom: '6px', minHeight: '1.2em'
   });
 
   const noteArea = document.createElement('textarea');
@@ -3712,7 +3718,25 @@ function editCfCell(td, cfKey, currentVal) {
   btnRow.appendChild(saveBtn);
   btnRow.appendChild(cancelBtn);
 
+  function evalExpr(str) {
+    str = str.replace(/\s/g, '');
+    if (!str) return NaN;
+    if (!/^-?[\d.]+([+\-*/][\d.]+)*$/.test(str)) return NaN;
+    try { return Function('"use strict"; return (' + str + ')')(); } catch { return NaN; }
+  }
+  function updatePreview() {
+    const raw = input.value.trim();
+    const val = evalExpr(raw);
+    if (raw.includes('+') || raw.includes('-', 1) || raw.includes('*') || raw.includes('/')) {
+      preview.textContent = !isNaN(val) ? '= ' + fmt(Math.abs(val)) : '';
+    } else {
+      preview.textContent = '';
+    }
+  }
+  input.addEventListener('input', updatePreview);
+
   popup.appendChild(input);
+  popup.appendChild(preview);
   popup.appendChild(noteArea);
   popup.appendChild(btnRow);
 
@@ -3720,14 +3744,24 @@ function editCfCell(td, cfKey, currentVal) {
   td.appendChild(popup);
   input.focus();
   input.select();
+  updatePreview();
 
   function save() {
-    const val = parseFloat(input.value);
+    const raw = input.value.trim();
+    const val = evalExpr(raw);
     if (!isNaN(val)) {
       data.cashflowEdits[cfKey] = val;
+      // Store formula if it's an expression, otherwise clear it
+      const isFormula = raw.includes('+') || raw.includes('-', 1) || raw.includes('*') || raw.includes('/');
+      if (isFormula) {
+        data.cashflowFormulas[cfKey] = raw;
+      } else {
+        delete data.cashflowFormulas[cfKey];
+      }
       logActivity('edit_cashflow', `עריכת תזרים: ${cfKey} = ₪${val}`, {cfKey, oldVal: oldCfVal});
     } else {
       delete data.cashflowEdits[cfKey];
+      delete data.cashflowFormulas[cfKey];
     }
     const noteVal = noteArea.value.trim();
     if (noteVal && noteVal !== excelNote) {
