@@ -570,15 +570,19 @@ body.sidebar-open { overflow: hidden; }
 .cf-note::after { content: '📝'; position: absolute; top: 1px; left: 2px; font-size: 0.55em; opacity: 0.7; }
 .cf-note:hover::after { opacity: 1; }
 .cf-note[title] { cursor: help; }
+.cf-bulk-badge { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; border-radius: 24px; padding: 10px 24px; display: flex; align-items: center; gap: 12px; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.4); cursor: pointer; font-family: inherit; font-size: 0.9em; direction: rtl; white-space: nowrap; }
+.cf-bulk-badge:hover { filter: brightness(1.15); }
+.cf-bulk-badge .cf-badge-x { margin-right: 8px; opacity: 0.7; cursor: pointer; font-size: 1.1em; }
+.cf-bulk-badge .cf-badge-x:hover { opacity: 1; }
 .cf-bulk-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9998; }
-.cf-bulk-bar { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 9999; direction: rtl; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 280px; }
-.cf-bulk-bar input { width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-family: inherit; font-size: 1em; direction: ltr; text-align: center; box-sizing: border-box; }
-.cf-bulk-bar .cf-bulk-preview { font-size: 0.85em; color: var(--text-muted); min-height: 1.2em; direction: ltr; }
-.cf-bulk-bar .cf-bulk-btns { display: flex; gap: 8px; width: 100%; }
-.cf-bulk-bar button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.9em; flex: 1; }
-.cf-bulk-bar .cf-bulk-save { background: var(--accent); color: #fff; }
-.cf-bulk-bar .cf-bulk-clear { background: var(--border); color: var(--text); }
-.cf-bulk-bar .cf-bulk-count { font-size: 0.95em; color: var(--accent); font-weight: 600; }
+.cf-bulk-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 9999; direction: rtl; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 280px; }
+.cf-bulk-popup input { width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-family: inherit; font-size: 1em; direction: ltr; text-align: center; box-sizing: border-box; }
+.cf-bulk-popup .cf-bulk-preview { font-size: 0.85em; color: var(--text-muted); min-height: 1.2em; direction: ltr; }
+.cf-bulk-popup .cf-bulk-btns { display: flex; gap: 8px; width: 100%; }
+.cf-bulk-popup button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.9em; flex: 1; }
+.cf-bulk-popup .cf-bulk-save { background: var(--accent); color: #fff; }
+.cf-bulk-popup .cf-bulk-clear { background: var(--border); color: var(--text); }
+.cf-bulk-popup .cf-bulk-count { font-size: 0.95em; color: var(--accent); font-weight: 600; }
 
 /* Progress circle */
 .progress-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
@@ -3709,10 +3713,34 @@ function cfClearSelection() {
 }
 
 function cfShowBulkBar() {
-  cfHideBulkBar();
+  // Update or create the floating badge
+  let badge = document.querySelector('.cf-bulk-badge');
+  if (badge) {
+    badge.querySelector('.cf-badge-text').textContent = cfSelectedCells.size + ' תאים נבחרו — לחץ לעריכה';
+    return;
+  }
+  badge = document.createElement('div');
+  badge.className = 'cf-bulk-badge';
+  const text = document.createElement('span');
+  text.className = 'cf-badge-text';
+  text.textContent = cfSelectedCells.size + ' תאים נבחרו — לחץ לעריכה';
+  const xBtn = document.createElement('span');
+  xBtn.className = 'cf-badge-x';
+  xBtn.textContent = '✕';
+  xBtn.addEventListener('click', (e) => { e.stopPropagation(); cfClearSelection(); });
+  badge.appendChild(text);
+  badge.appendChild(xBtn);
+  badge.addEventListener('click', cfOpenBulkPopup);
+  document.body.appendChild(badge);
+}
+
+function cfOpenBulkPopup() {
+  // Remove badge, show popup with overlay
+  const badge = document.querySelector('.cf-bulk-badge');
+  if (badge) badge.remove();
 
   cfBulkBar = document.createElement('div');
-  cfBulkBar.className = 'cf-bulk-bar';
+  cfBulkBar.className = 'cf-bulk-popup';
 
   const countSpan = document.createElement('span');
   countSpan.className = 'cf-bulk-count';
@@ -3800,6 +3828,8 @@ function cfShowBulkBar() {
 
 function cfHideBulkBar() {
   if (cfBulkBar) { cfBulkBar.remove(); cfBulkBar = null; }
+  const badge = document.querySelector('.cf-bulk-badge');
+  if (badge) badge.remove();
   const overlay = document.querySelector('.cf-bulk-overlay');
   if (overlay) overlay.remove();
 }
