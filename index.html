@@ -608,43 +608,29 @@ body.sidebar-open { overflow: hidden; }
   font-size: 0.9em;
   margin-bottom: 28px;
 }
-.login-card label {
-  display: block;
-  text-align: right;
-  color: var(--text-muted);
-  font-size: 0.85em;
-  margin-bottom: 6px;
-}
-.login-card input[type="email"] {
+#btn-google-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
+  padding: 14px 20px;
   border: 1px solid var(--border);
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 1em;
-  margin-bottom: 16px;
-  box-sizing: border-box;
-}
-.login-card input[type="email"]:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(22,219,204,0.15);
-}
-#btn-send-link {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #1a1a2e;
+  border-radius: 12px;
+  background: #fff;
+  color: #3c4043;
   font-size: 1em;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: box-shadow 0.2s, background 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
 }
-#btn-send-link:hover { opacity: 0.9; }
-#btn-send-link:disabled { opacity: 0.5; cursor: not-allowed; }
+#btn-google-login:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  background: #f8f9fa;
+}
+#btn-google-login:disabled { opacity: 0.5; cursor: not-allowed; }
 .login-status {
   margin-top: 16px;
   font-size: 0.85em;
@@ -693,7 +679,7 @@ body.sidebar-open { overflow: hidden; }
     <div class="login-logo">💰 ניהול כספי</div>
     <p class="login-subtitle">התחבר עם חשבון Google</p>
     <div id="login-form">
-      <button id="btn-google-login" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;">
+      <button id="btn-google-login" onclick="signInWithGoogle()">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#34A853" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#FBBC05" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-8.09 5.91C6.51 42.62 14.62 48 24 48z"/></svg>
         התחבר עם Google
       </button>
@@ -804,7 +790,7 @@ body.sidebar-open { overflow: hidden; }
         <div class="form-grid">
           <div class="form-group">
             <label>תאריך</label>
-            <input type="date" id="tx-date">
+            <input type="text" id="tx-date" placeholder="DD/MM/YYYY" dir="ltr">
           </div>
           <div class="form-group">
             <label>סכום (₪)</label>
@@ -843,6 +829,30 @@ body.sidebar-open { overflow: hidden; }
             <label>הערות</label>
             <textarea id="tx-notes" rows="2" placeholder="הערות נוספות (אופציונלי)"></textarea>
           </div>
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="tx-recurring" onchange="toggleRecurring()" style="width:auto;min-height:auto;">
+              תנועה חוזרת (קבועה)
+            </label>
+          </div>
+          <div id="recurring-fields" style="display:none;grid-column:1/-1;">
+            <div class="form-grid" style="margin-top:0;">
+              <div class="form-group">
+                <label>תדירות</label>
+                <select id="tx-recur-freq">
+                  <option value="monthly">חודשי</option>
+                  <option value="bimonthly">כל חודשיים</option>
+                  <option value="quarterly">רבעוני</option>
+                  <option value="yearly">שנתי</option>
+                  <option value="weekly">שבועי</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>עד תאריך</label>
+                <input type="text" id="tx-recur-end" placeholder="DD/MM/YYYY" dir="ltr">
+              </div>
+            </div>
+          </div>
         </div>
         <div class="actions">
           <button class="btn btn-primary" onclick="addTransaction()">💾 שמור</button>
@@ -862,6 +872,7 @@ body.sidebar-open { overflow: hidden; }
           <input type="file" id="bank-file-input" accept=".csv,.xlsx,.xls" onchange="handleBankFile(event)" style="display:none;">
         </label>
         <span id="bank-file-name" style="font-size:0.85em;color:var(--text-muted);margin-right:12px;"></span>
+        <button id="bank-file-clear" class="btn btn-secondary btn-sm" style="display:none;" onclick="clearBankFile()">✕ נקה</button>
       </div>
       <div id="bank-import-panel" class="form-card" style="display:none;">
         <h3>תצוגה מקדימה וייבוא</h3>
@@ -991,7 +1002,7 @@ body.sidebar-open { overflow: hidden; }
         <div class="form-card" style="width:420px;max-width:90vw;max-height:90vh;overflow-y:auto;margin:0;">
           <h3 style="margin-top:0;">עריכת תנועה</h3>
           <input type="hidden" id="edit-tx-id">
-          <div class="form-group"><label>תאריך</label><input type="date" id="edit-tx-date"></div>
+          <div class="form-group"><label>תאריך</label><input type="text" id="edit-tx-date" placeholder="DD/MM/YYYY" dir="ltr"></div>
           <div class="form-group"><label>סכום (₪)</label><input type="number" id="edit-tx-amount" step="0.01" min="0"></div>
           <div class="form-group"><label>תיאור</label><input type="text" id="edit-tx-desc"></div>
           <div class="form-group"><label>סוג</label>
@@ -1104,7 +1115,7 @@ body.sidebar-open { overflow: hidden; }
           <div class="form-group"><label>שם</label><input type="text" id="sav-name"></div>
           <div class="form-group"><label>סכום מקורי</label><input type="number" id="sav-original" step="0.01"></div>
           <div class="form-group"><label>סכום נוכחי</label><input type="number" id="sav-current" step="0.01"></div>
-          <div class="form-group"><label>נזילות</label><input type="date" id="sav-liquid"></div>
+          <div class="form-group"><label>נזילות</label><input type="text" id="sav-liquid" placeholder="DD/MM/YYYY" dir="ltr"></div>
         </div>
         <div class="actions"><button class="btn btn-primary" onclick="addSaving()">💾 הוסף</button></div>
       </div>
@@ -1116,8 +1127,8 @@ body.sidebar-open { overflow: hidden; }
           <div class="form-group"><label>שם</label><input type="text" id="edit-sav-name"></div>
           <div class="form-group"><label>סכום מקורי</label><input type="number" id="edit-sav-original" step="0.01"></div>
           <div class="form-group"><label>סכום נוכחי</label><input type="number" id="edit-sav-current" step="0.01"></div>
-          <div class="form-group"><label>נזילות</label><input type="date" id="edit-sav-liquid"></div>
-          <div class="form-group"><label>עדכון אחרון</label><input type="date" id="edit-sav-updated"></div>
+          <div class="form-group"><label>נזילות</label><input type="text" id="edit-sav-liquid" placeholder="DD/MM/YYYY" dir="ltr"></div>
+          <div class="form-group"><label>עדכון אחרון</label><input type="text" id="edit-sav-updated" placeholder="DD/MM/YYYY" dir="ltr"></div>
           <div class="actions">
             <button class="btn btn-primary" onclick="saveEditSav()">💾 שמור</button>
             <button class="btn btn-secondary" onclick="closeEditSav()">ביטול</button>
@@ -1207,13 +1218,8 @@ body.sidebar-open { overflow: hidden; }
         </div>
       </div>
       <div class="form-card">
-        <h3>ייצוא / ייבוא נתונים</h3>
+        <h3>ניהול נתונים</h3>
         <div class="actions">
-          <button class="btn btn-primary" onclick="exportData()">📤 ייצוא נתונים (JSON)</button>
-          <label class="btn btn-secondary" style="cursor:pointer;">
-            📥 ייבוא נתונים
-            <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
-          </label>
           <button class="btn btn-danger" onclick="if(confirm('האם אתה בטוח? כל הנתונים יימחקו!')){localStorage.clear();location.reload();}">🗑️ איפוס נתונים</button>
         </div>
       </div>
@@ -1544,6 +1550,23 @@ if (!data.incomeAggSectors) {
 if (!data.cashflowEdits) { data.cashflowEdits = {}; saveData(); }
 if (!data.activityLog) { data.activityLog = []; saveData(); }
 
+// One-time migration: fix bank-imported dates that are off by 1 day
+// Old imports used SheetJS cellDates:true which created dates at 21:59:20 UTC, causing off-by-one
+(function migrateBankDates() {
+  if (localStorage.getItem('dateMigrationV2')) return;
+  let fixed = 0;
+  data.transactions.forEach(t => {
+    if (!t.date || !t.source) return;
+    const m = String(t.date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return;
+    const d = new Date(Date.UTC(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]) + 1));
+    t.date = d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+    fixed++;
+  });
+  if (fixed > 0) saveData();
+  localStorage.setItem('dateMigrationV2', '1');
+})();
+
 let currentMonth = new Date();
 let currentTxType = 'expense';
 
@@ -1686,18 +1709,44 @@ function changeMonth(dir) {
 }
 
 // ===== FORMATTING =====
-function fmt(n) {
-  return '₪' + Math.abs(n).toLocaleString('he-IL', {minimumFractionDigits:0, maximumFractionDigits:0});
+function fmt(n, sign) {
+  const abs = Math.abs(n).toLocaleString('he-IL', {minimumFractionDigits:0, maximumFractionDigits:0});
+  if (sign === '+') return '+₪' + abs;
+  if (sign === '-') return '-₪' + abs;
+  return '₪' + abs;
 }
 function fmtDate(d) {
+  if (!d) return '';
   const dt = new Date(d);
+  if (isNaN(dt.getTime())) return String(d);
   const dd = String(dt.getDate()).padStart(2,'0');
   const mm = String(dt.getMonth()+1).padStart(2,'0');
   const yyyy = dt.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
+function isoToDisplay(iso) {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return iso;
+}
+function displayToIso(display) {
+  if (!display) return '';
+  const m = String(display).trim().match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})$/);
+  if (m) {
+    const year = m[3].length === 2 ? '20' + m[3] : m[3];
+    return `${year}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  return display;
+}
+function todayDisplay() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
 function getMonthKey(d) {
+  if (!d) return '';
   const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '';
   return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
 }
 
@@ -1742,7 +1791,7 @@ function renderDashboard() {
     </div>
     <div class="stat-card">
       <div class="label">יתרה</div>
-      <div class="value ${balance >= 0 ? 'income' : 'expense'}">${balance >= 0 ? '' : '-'}${fmt(balance)}</div>
+      <div class="value ${balance >= 0 ? 'income' : 'expense'}">${fmt(balance, balance < 0 ? '-' : undefined)}</div>
     </div>
   `;
 
@@ -1862,7 +1911,7 @@ function renderRecentTable() {
       <td>${t.desc || '-'}</td>
       <td><span class="cat-badge cat-${t.type}">${t.category}</span></td>
       <td>${t.who || '-'}</td>
-      <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</td>
+      <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${fmt(t.amount, t.type === 'income' ? '+' : '-')}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;">אין תנועות עדיין. הוסף את ההוצאה הראשונה שלך!</td></tr>';
 }
@@ -1876,7 +1925,7 @@ function setTxType(type, btn) {
 }
 
 function setupAddForm() {
-  document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tx-date').value = todayDisplay();
   populateCatSelect();
   renderQuickBtns();
 }
@@ -1907,12 +1956,33 @@ function quickAdd(cat) {
   showToast('נבחר: ' + cat + ' - הזן סכום');
 }
 
+function toggleRecurring() {
+  document.getElementById('recurring-fields').style.display =
+    document.getElementById('tx-recurring').checked ? '' : 'none';
+}
+
+function getRecurringDates(startDate, endDate, freq) {
+  const dates = [];
+  let d = new Date(startDate);
+  const end = new Date(endDate);
+  while (d <= end) {
+    dates.push(d.toISOString().split('T')[0]);
+    const next = new Date(d);
+    if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
+    else if (freq === 'bimonthly') next.setMonth(next.getMonth() + 2);
+    else if (freq === 'quarterly') next.setMonth(next.getMonth() + 3);
+    else if (freq === 'yearly') next.setFullYear(next.getFullYear() + 1);
+    else if (freq === 'weekly') next.setDate(next.getDate() + 7);
+    d = next;
+  }
+  return dates;
+}
+
 function addTransaction() {
   const amount = parseFloat(document.getElementById('tx-amount').value);
   if (!amount || amount <= 0) { showToast('אנא הזן סכום תקין'); return; }
-  const tx = {
-    id: Date.now(),
-    date: document.getElementById('tx-date').value,
+  const baseTx = {
+    date: displayToIso(document.getElementById('tx-date').value),
     amount,
     type: currentTxType,
     category: document.getElementById('tx-category').value,
@@ -1922,18 +1992,43 @@ function addTransaction() {
     desc: document.getElementById('tx-desc').value,
     notes: document.getElementById('tx-notes').value,
   };
-  data.transactions.push(tx);
-  saveData();
-  logActivity('add_tx', `הוספת ${currentTxType==='income'?'הכנסה':'הוצאה'}: ${tx.category} ₪${tx.amount}`, {txId: tx.id});
-  clearForm();
-  showToast('✅ התנועה נשמרה בהצלחה!');
+
+  const isRecurring = document.getElementById('tx-recurring').checked;
+  if (isRecurring) {
+    const freq = document.getElementById('tx-recur-freq').value;
+    const endDate = displayToIso(document.getElementById('tx-recur-end').value);
+    if (!endDate) { showToast('אנא בחר תאריך סיום לתנועה חוזרת'); return; }
+    if (endDate <= baseTx.date) { showToast('תאריך סיום חייב להיות אחרי תאריך התחלה'); return; }
+    const dates = getRecurringDates(baseTx.date, endDate, freq);
+    const ids = [];
+    dates.forEach(d => {
+      const tx = { ...baseTx, id: Date.now() + Math.random(), date: d, recurring: freq };
+      data.transactions.push(tx);
+      ids.push(tx.id);
+    });
+    saveData();
+    const freqLabel = {monthly:'חודשי',bimonthly:'כל חודשיים',quarterly:'רבעוני',yearly:'שנתי',weekly:'שבועי'}[freq];
+    logActivity('add_tx', `הוספת ${dates.length} תנועות חוזרות (${freqLabel}): ${baseTx.category} ₪${baseTx.amount}`, {txIds: ids});
+    clearForm();
+    showToast(`✅ נוספו ${dates.length} תנועות חוזרות!`);
+  } else {
+    const tx = { ...baseTx, id: Date.now() };
+    data.transactions.push(tx);
+    saveData();
+    logActivity('add_tx', `הוספת ${currentTxType==='income'?'הכנסה':'הוצאה'}: ${tx.category} ₪${tx.amount}`, {txId: tx.id});
+    clearForm();
+    showToast('✅ התנועה נשמרה בהצלחה!');
+  }
 }
 
 function clearForm() {
   document.getElementById('tx-amount').value = '';
   document.getElementById('tx-desc').value = '';
   document.getElementById('tx-notes').value = '';
-  document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tx-date').value = todayDisplay();
+  document.getElementById('tx-recurring').checked = false;
+  document.getElementById('tx-recur-end').value = '';
+  document.getElementById('recurring-fields').style.display = 'none';
 }
 
 // ===== BANK FILE IMPORT =====
@@ -1945,10 +2040,11 @@ function handleBankFile(event) {
   const file = event.target.files[0];
   if (!file) return;
   document.getElementById('bank-file-name').textContent = file.name;
+  document.getElementById('bank-file-clear').style.display = '';
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      bankWorkbook = XLSX.read(e.target.result, {type: 'array', cellDates: true});
+      bankWorkbook = XLSX.read(e.target.result, {type: 'array', cellDates: false});
       const sheetNames = bankWorkbook.SheetNames;
 
       // Show sheet selector if multiple sheets
@@ -2122,7 +2218,13 @@ function renderBankPreview() {
     html += `<tr data-row="${rowIdx}">`;
     headers.forEach((_, i) => {
       let val = row[i] != null ? row[i] : '';
-      if (val instanceof Date) { const dd=String(val.getDate()).padStart(2,'0'),mm=String(val.getMonth()+1).padStart(2,'0'); val=`${dd}/${mm}/${val.getFullYear()}`; }
+      if (val instanceof Date) {
+        const dd=String(val.getDate()).padStart(2,'0'),mm=String(val.getMonth()+1).padStart(2,'0');
+        val=`${dd}/${mm}/${val.getFullYear()}`;
+      } else if (typeof val === 'number' && val > 30000 && val < 100000) {
+        const parsed = parseBankDate(val);
+        if (parsed) { const [y,m2,d2] = parsed.split('-'); val = `${d2}/${m2}/${y}`; }
+      }
       html += `<td class="${mappedCols.has(i) ? 'col-mapped' : ''}">${val}</td>`;
     });
     html += '</tr>';
@@ -2166,13 +2268,10 @@ function renderBankPreview() {
     const rawAmt = amountCol >= 0 ? row[amountCol] : '';
     const rawCredit = creditCol >= 0 ? row[creditCol] : '';
     if (!desc && !rawAmt && !rawCredit) return; // skip empty rows
-    // Format date
+    // Format date (handles Date objects, serial numbers, and strings)
     const dateVal = dateCol >= 0 ? row[dateCol] : '';
     let dateStr = '';
-    if (dateVal instanceof Date) {
-      const dd=String(dateVal.getDate()).padStart(2,'0'),mm=String(dateVal.getMonth()+1).padStart(2,'0');
-      dateStr = `${dd}/${mm}/${dateVal.getFullYear()}`;
-    } else if (dateVal) {
+    if (dateVal) {
       const parsed = parseBankDate(dateVal);
       if (parsed) {
         const [y,m,d] = parsed.split('-');
@@ -2322,16 +2421,31 @@ function selectCatOption(wrap, cat) {
 
 function parseBankDate(val) {
   if (!val) return null;
+  // Excel serial number (e.g. 45306)
+  if (typeof val === 'number' && val > 30000 && val < 100000) {
+    const adj = val > 59 ? val - 1 : val;
+    const d = new Date(Date.UTC(1900, 0, adj));
+    const dd = String(d.getUTCDate()).padStart(2,'0');
+    const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+    return `${d.getUTCFullYear()}-${mm}-${dd}`;
+  }
   if (val instanceof Date) {
     if (isNaN(val.getTime())) return null;
-    return val.toISOString().split('T')[0];
+    const dd = String(val.getDate()).padStart(2,'0');
+    const mm = String(val.getMonth()+1).padStart(2,'0');
+    const yyyy = val.getFullYear();
+    return `${yyyy}-${mm}-${dd}`;
   }
   const s = String(val).trim();
   // DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY
   const m = s.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})$/);
   if (m) {
     const year = m[3].length === 2 ? '20' + m[3] : m[3];
-    return `${year}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    let day, month;
+    if (parseInt(m[1]) > 12) { day = m[1]; month = m[2]; }
+    else if (parseInt(m[2]) > 12) { day = m[2]; month = m[1]; }
+    else { day = m[1]; month = m[2]; }
+    return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
   }
   // YYYY-MM-DD
   const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2433,7 +2547,12 @@ function cancelBankImport() {
   document.getElementById('bank-import-panel').style.display = 'none';
   document.getElementById('bank-file-input').value = '';
   document.getElementById('bank-file-name').textContent = '';
+  document.getElementById('bank-file-clear').style.display = 'none';
   document.getElementById('bank-sheet-row').style.display = 'none';
+}
+
+function clearBankFile() {
+  cancelBankImport();
 }
 
 // ===== TRANSACTIONS =====
@@ -2543,9 +2662,9 @@ function renderTransactions() {
         <td style="font-weight:600;">${key}</td>
         <td>${v.count}</td>
         <td>
-          ${v.income > 0 ? '<span class="amount-positive">+' + fmt(v.income) + '</span>' : ''}
+          ${v.income > 0 ? '<span class="amount-positive">' + fmt(v.income, '+') + '</span>' : ''}
           ${v.income > 0 && v.expense > 0 ? ' / ' : ''}
-          ${v.expense > 0 ? '<span class="amount-negative">-' + fmt(v.expense) + '</span>' : ''}
+          ${v.expense > 0 ? '<span class="amount-negative">' + fmt(v.expense, '-') + '</span>' : ''}
         </td>
         <td>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -2562,9 +2681,9 @@ function renderTransactions() {
       <td>סה"כ</td>
       <td>${totalCount}</td>
       <td>
-        ${totalIncome > 0 ? '<span class="amount-positive">+' + fmt(totalIncome) + '</span>' : ''}
+        ${totalIncome > 0 ? '<span class="amount-positive">' + fmt(totalIncome, '+') + '</span>' : ''}
         ${totalIncome > 0 && totalExpense > 0 ? ' / ' : ''}
-        ${totalExpense > 0 ? '<span class="amount-negative">-' + fmt(totalExpense) + '</span>' : ''}
+        ${totalExpense > 0 ? '<span class="amount-negative">' + fmt(totalExpense, '-') + '</span>' : ''}
       </td>
       <td>100%</td>
     </tr>`;
@@ -2580,7 +2699,7 @@ function renderTransactions() {
       <td>${t.who || '-'}</td>
       <td>${t.method || '-'}</td>
       <td style="font-size:0.8em;color:var(--text-muted)">${t.source || '-'}</td>
-      <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</td>
+      <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${fmt(t.amount, t.type === 'income' ? '+' : '-')}</td>
       <td style="white-space:nowrap;">
         <button class="del-btn" onclick="openEditTx(${t.id})" title="עריכה" style="color:var(--accent);margin-left:4px;">✎</button>
         <button class="del-btn" onclick="deleteTx(${t.id})" title="מחיקה">✕</button>
@@ -2604,7 +2723,7 @@ function openEditTx(id) {
   const t = data.transactions.find(tx => tx.id === id);
   if (!t) return;
   document.getElementById('edit-tx-id').value = id;
-  document.getElementById('edit-tx-date').value = t.date;
+  document.getElementById('edit-tx-date').value = isoToDisplay(t.date);
   document.getElementById('edit-tx-amount').value = t.amount;
   document.getElementById('edit-tx-desc').value = t.desc || '';
   document.getElementById('edit-tx-type').value = t.type;
@@ -2702,7 +2821,7 @@ function saveEditTx() {
   const t = data.transactions.find(tx => tx.id === id);
   if (!t) return;
   const oldData = {date: t.date, amount: t.amount, desc: t.desc, type: t.type, category: t.category, subcategory: t.subcategory, who: t.who, method: t.method, source: t.source, notes: t.notes};
-  t.date = document.getElementById('edit-tx-date').value;
+  t.date = displayToIso(document.getElementById('edit-tx-date').value);
   t.amount = parseFloat(document.getElementById('edit-tx-amount').value) || 0;
   t.desc = document.getElementById('edit-tx-desc').value.trim();
   t.type = document.getElementById('edit-tx-type').value;
@@ -2853,7 +2972,7 @@ function addSaving() {
     name,
     original: parseFloat(document.getElementById('sav-original').value) || 0,
     current: parseFloat(document.getElementById('sav-current').value) || 0,
-    liquid: document.getElementById('sav-liquid').value || '',
+    liquid: displayToIso(document.getElementById('sav-liquid').value) || '',
     updated: today
   });
   saveData();
@@ -2873,8 +2992,8 @@ function openEditSav(idx) {
   document.getElementById('edit-sav-name').value = sv.name || '';
   document.getElementById('edit-sav-original').value = sv.original || 0;
   document.getElementById('edit-sav-current').value = sv.current || 0;
-  document.getElementById('edit-sav-liquid').value = toISODate(sv.liquid) || '';
-  document.getElementById('edit-sav-updated').value = toISODate(sv.updated) || '';
+  document.getElementById('edit-sav-liquid').value = sv.liquid ? isoToDisplay(toISODate(sv.liquid)) : '';
+  document.getElementById('edit-sav-updated').value = sv.updated ? isoToDisplay(toISODate(sv.updated)) : '';
   document.getElementById('edit-sav-overlay').style.display = 'flex';
 }
 
@@ -2890,8 +3009,8 @@ function saveEditSav() {
   sv.name = document.getElementById('edit-sav-name').value.trim();
   sv.original = parseFloat(document.getElementById('edit-sav-original').value) || 0;
   sv.current = parseFloat(document.getElementById('edit-sav-current').value) || 0;
-  sv.liquid = document.getElementById('edit-sav-liquid').value || '';
-  sv.updated = document.getElementById('edit-sav-updated').value || '';
+  sv.liquid = displayToIso(document.getElementById('edit-sav-liquid').value) || '';
+  sv.updated = displayToIso(document.getElementById('edit-sav-updated').value) || '';
   saveData();
   logActivity('edit_saving', `עריכת חיסכון: ${sv.name}`, {name: sv.name, old: oldSv});
   closeEditSav();
