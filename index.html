@@ -564,11 +564,19 @@ body.sidebar-open { overflow: hidden; }
 .cf-zero { color: var(--text-muted) !important; }
 .cf-editable { background: rgba(22,219,204,0.04); }
 .cf-editable:hover { background: rgba(22,219,204,0.12); }
+.cf-editable.cf-selected { background: rgba(22,219,204,0.25); outline: 2px solid var(--accent); outline-offset: -2px; }
 .cf-override { border-bottom: 2px solid var(--accent) !important; }
 .cf-note { position: relative; }
 .cf-note::after { content: '📝'; position: absolute; top: 1px; left: 2px; font-size: 0.55em; opacity: 0.7; }
 .cf-note:hover::after { opacity: 1; }
 .cf-note[title] { cursor: help; }
+.cf-bulk-bar { position: sticky; bottom: 0; background: var(--card-bg); border-top: 2px solid var(--accent); padding: 8px 16px; display: flex; align-items: center; gap: 10px; z-index: 100; direction: rtl; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); }
+.cf-bulk-bar input { width: 180px; padding: 6px 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.9em; direction: ltr; text-align: center; }
+.cf-bulk-bar .cf-bulk-preview { font-size: 0.8em; color: var(--text-muted); min-width: 80px; direction: ltr; }
+.cf-bulk-bar button { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.85em; }
+.cf-bulk-bar .cf-bulk-save { background: var(--accent); color: #fff; }
+.cf-bulk-bar .cf-bulk-clear { background: var(--border); color: var(--text); }
+.cf-bulk-bar .cf-bulk-count { font-size: 0.85em; color: var(--accent); font-weight: 600; }
 
 /* Progress circle */
 .progress-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
@@ -3466,7 +3474,7 @@ function renderFixedCashflow(year, fixedMonths) {
       const escapedKey = cfKey.replace(/'/g, "\\'");
 
       if (!isTotal) {
-        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} onclick="editCfCell(this,'${escapedKey}',${displayVal})">${valFn(displayVal)}</td>`;
+        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} data-cfkey="${escapedKey}" data-cfval="${displayVal}" onclick="cfCellClick(event,this)" ondblclick="editCfCell(this,'${escapedKey}',${displayVal})">${valFn(displayVal)}</td>`;
       } else {
         html += `<td style="text-align:center;" class="${noteClass}"${noteTitle}>${valFn(displayVal)}</td>`;
       }
@@ -3661,6 +3669,133 @@ function renderComputedCashflow(year) {
   html += '</tbody>';
   document.getElementById('cf-table').innerHTML = html;
 }
+
+// ===== MULTI-SELECT CELLS =====
+const cfSelectedCells = new Set();
+let cfBulkBar = null;
+
+function cfCellClick(e, td) {
+  // Prevent if double-click will fire
+  if (td.querySelector('.cf-edit-popup')) return;
+  e.stopPropagation();
+
+  const cfKey = td.dataset.cfkey;
+  if (!cfKey) return;
+
+  if (e.ctrlKey || e.metaKey) {
+    // Toggle selection
+    if (cfSelectedCells.has(cfKey)) {
+      cfSelectedCells.delete(cfKey);
+      td.classList.remove('cf-selected');
+    } else {
+      cfSelectedCells.add(cfKey);
+      td.classList.add('cf-selected');
+    }
+  } else {
+    // If clicking an already-selected cell alone and it's the only one, open editor
+    if (cfSelectedCells.size === 1 && cfSelectedCells.has(cfKey)) {
+      cfClearSelection();
+      editCfCell(td, cfKey, parseFloat(td.dataset.cfval));
+      return;
+    }
+    // Clear others, select this one
+    cfClearSelection();
+    cfSelectedCells.add(cfKey);
+    td.classList.add('cf-selected');
+  }
+
+  if (cfSelectedCells.size > 1) {
+    cfShowBulkBar();
+  } else {
+    cfHideBulkBar();
+  }
+}
+
+function cfClearSelection() {
+  document.querySelectorAll('.cf-selected').forEach(el => el.classList.remove('cf-selected'));
+  cfSelectedCells.clear();
+  cfHideBulkBar();
+}
+
+function cfShowBulkBar() {
+  cfHideBulkBar();
+  const table = document.getElementById('cf-table');
+  const container = table.parentElement;
+
+  cfBulkBar = document.createElement('div');
+  cfBulkBar.className = 'cf-bulk-bar';
+
+  const countSpan = document.createElement('span');
+  countSpan.className = 'cf-bulk-count';
+  countSpan.textContent = cfSelectedCells.size + ' תאים נבחרו';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'ערך או נוסחה (למשל 500+100)';
+
+  const preview = document.createElement('span');
+  preview.className = 'cf-bulk-preview';
+
+  function evalExpr(str) {
+    str = str.replace(/\s/g, '');
+    if (!str) return NaN;
+    if (!/^-?[\d.]+([+\-*/][\d.]+)*$/.test(str)) return NaN;
+    try { return Function('"use strict"; return (' + str + ')')(); } catch { return NaN; }
+  }
+
+  input.addEventListener('input', () => {
+    const raw = input.value.trim();
+    const val = evalExpr(raw);
+    if (!isNaN(val) && (raw.includes('+') || raw.includes('-', 1) || raw.includes('*') || raw.includes('/'))) {
+      preview.textContent = '= ' + fmt(Math.abs(val));
+    } else {
+      preview.textContent = '';
+    }
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'cf-bulk-save';
+  saveBtn.textContent = 'החל על הכל';
+  saveBtn.addEventListener('click', () => {
+    const raw = input.value.trim();
+    const val = evalExpr(raw);
+    if (isNaN(val)) return;
+    const isFormula = raw.includes('+') || raw.includes('-', 1) || raw.includes('*') || raw.includes('/');
+    cfSelectedCells.forEach(cfKey => {
+      data.cashflowEdits[cfKey] = val;
+      if (isFormula) data.cashflowFormulas[cfKey] = raw;
+      else delete data.cashflowFormulas[cfKey];
+    });
+    logActivity('edit_cashflow', `עריכה מרובה: ${cfSelectedCells.size} תאים = ₪${val}`, {});
+    saveData();
+    cfSelectedCells.clear();
+    cfBulkBar = null;
+    renderCashflow();
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'cf-bulk-clear';
+  clearBtn.textContent = 'ביטול';
+  clearBtn.addEventListener('click', cfClearSelection);
+
+  cfBulkBar.appendChild(countSpan);
+  cfBulkBar.appendChild(input);
+  cfBulkBar.appendChild(preview);
+  cfBulkBar.appendChild(saveBtn);
+  cfBulkBar.appendChild(clearBtn);
+
+  container.appendChild(cfBulkBar);
+  input.focus();
+}
+
+function cfHideBulkBar() {
+  if (cfBulkBar) { cfBulkBar.remove(); cfBulkBar = null; }
+}
+
+// ESC to clear selection
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && cfSelectedCells.size > 0) cfClearSelection();
+});
 
 function editCfCell(td, cfKey, currentVal) {
   if (td.querySelector('.cf-edit-popup')) return; // already editing
