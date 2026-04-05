@@ -570,6 +570,7 @@ body.sidebar-open { overflow: hidden; }
 .cf-editable:hover { background: rgba(22,219,204,0.12); }
 .cf-editable.cf-selected { background: rgba(22,219,204,0.25); outline: 2px solid var(--accent); outline-offset: -2px; }
 .cf-override { border-bottom: 2px solid var(--accent) !important; }
+.cf-from-tx { border-right: 3px solid var(--income); }
 .cf-note { position: relative; }
 .cf-note::after { content: '📝'; position: absolute; top: 1px; left: 2px; font-size: 0.55em; opacity: 0.7; }
 .cf-note:hover::after { opacity: 1; }
@@ -3399,20 +3400,79 @@ function renderFixedCashflow(year, fixedMonths) {
     return `<span class="cf-negative">-${fmt(Math.abs(v))}</span>`;
   }
 
+  // Determine which months are "closed" (past) — transactions override fixed data
+  const nowDate = new Date();
+  const nowYear = nowDate.getFullYear();
+  const nowMonth = nowDate.getMonth(); // 0-indexed, current month
+  function isMonthClosed(y, m) {
+    // A month is closed if it's before the current month
+    return (y < nowYear) || (y === nowYear && m < nowMonth);
+  }
+
+  // Get transactions for this year for closed months
+  const yearTx = data.transactions.filter(t => new Date(t.date).getFullYear() === year);
+  function txSum(month, type, category) {
+    return yearTx.filter(t => {
+      const d = new Date(t.date);
+      if (d.getMonth() !== month) return false;
+      if (type && t.type !== type) return false;
+      if (category && t.category !== category) return false;
+      return true;
+    }).reduce((s, t) => s + t.amount, 0);
+  }
+  function txSumByWho(month, who) {
+    return yearTx.filter(t => {
+      const d = new Date(t.date);
+      return d.getMonth() === month && t.type === 'income' && t.who === who;
+    }).reduce((s, t) => s + t.amount, 0);
+  }
+
+  // Income row name to transaction mapping
+  const incomeRowMap = {
+    'הכנסה לירן': (m) => txSumByWho(m, 'לירן'),
+    'הכנסה עופרי': (m) => txSumByWho(m, 'עופרי'),
+    'הכנסה חד פעמית': (m) => {
+      // All income not attributed to לירן or עופרי
+      return yearTx.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === m && t.type === 'income' && t.who !== 'לירן' && t.who !== 'עופרי';
+      }).reduce((s, t) => s + t.amount, 0);
+    }
+  };
+
   // First pass: resolve all cell values and compute totals
   const incomeTotal = new Array(maxMonth + 1).fill(0);
   const expenseTotal = new Array(maxMonth + 1).fill(0);
   const cellValues = {}; // key: "rowIdx-m" => displayVal
+  const cellSource = {}; // key: "rowIdx-m" => 'tx' | 'fixed'
 
   CF_STRUCTURE.forEach((row, ri) => {
     const name = row.name;
     const type = row.type;
     for (let m = 0; m <= maxMonth; m++) {
       const cfKey = `${year}-${m}-${name}`;
-      const entry = CF_DATA[cfKey];
-      const rawVal = entry ? entry.v : 0;
       const hasOverride = data.cashflowEdits[cfKey] !== undefined;
-      const displayVal = hasOverride ? data.cashflowEdits[cfKey] : rawVal;
+      let displayVal;
+
+      if (hasOverride) {
+        displayVal = data.cashflowEdits[cfKey];
+        cellSource[`${ri}-${m}`] = 'fixed';
+      } else if (isMonthClosed(year, m) && (type === 'income' || type === 'expense')) {
+        // Past month: use transaction data
+        if (type === 'income' && incomeRowMap[name]) {
+          displayVal = incomeRowMap[name](m);
+        } else if (type === 'expense') {
+          displayVal = txSum(m, 'expense', name);
+        } else {
+          displayVal = txSum(m, 'income', name);
+        }
+        cellSource[`${ri}-${m}`] = 'tx';
+      } else {
+        const entry = CF_DATA[cfKey];
+        displayVal = entry ? entry.v : 0;
+        cellSource[`${ri}-${m}`] = 'fixed';
+      }
+
       cellValues[`${ri}-${m}`] = displayVal;
       if (type === 'income') incomeTotal[m] += displayVal;
       if (type === 'expense') expenseTotal[m] += displayVal;
@@ -3481,10 +3541,11 @@ function renderFixedCashflow(year, fixedMonths) {
       const noteTitle = note ? ` title="${note.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"` : '';
       const hasOverride = data.cashflowEdits[cfKey] !== undefined;
       const overrideClass = hasOverride ? ' cf-override' : '';
+      const txClass = cellSource[`${ri}-${m}`] === 'tx' ? ' cf-from-tx' : '';
       const escapedKey = cfKey.replace(/'/g, "\\'");
 
       if (!isTotal) {
-        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} data-cfkey="${escapedKey}" data-cfval="${displayVal}" onclick="cfCellClick(event,this)">${valFn(displayVal)}</td>`;
+        html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${txClass}${noteClass}"${noteTitle} data-cfkey="${escapedKey}" data-cfval="${displayVal}" onclick="cfCellClick(event,this)">${valFn(displayVal)}</td>`;
       } else {
         html += `<td style="text-align:center;" class="${noteClass}"${noteTitle}>${valFn(displayVal)}</td>`;
       }
