@@ -1552,6 +1552,7 @@ if (!data.incomeAggSectors) {
   if (added) saveData();
 })();
 if (!data.cashflowEdits) { data.cashflowEdits = {}; saveData(); }
+if (!data.cashflowNotes) { data.cashflowNotes = {}; saveData(); }
 if (!data.activityLog) { data.activityLog = []; saveData(); }
 
 // One-time migration: fix bank-imported dates that are off by 1 day
@@ -3379,6 +3380,33 @@ function renderFixedCashflow(year, fixedMonths) {
     return `<span class="cf-negative">-${fmt(Math.abs(v))}</span>`;
   }
 
+  // First pass: resolve all cell values and compute totals
+  const incomeTotal = new Array(maxMonth + 1).fill(0);
+  const expenseTotal = new Array(maxMonth + 1).fill(0);
+  const cellValues = {}; // key: "rowIdx-m" => displayVal
+
+  CF_STRUCTURE.forEach((row, ri) => {
+    const name = row.name;
+    const type = row.type;
+    for (let m = 0; m <= maxMonth; m++) {
+      const cfKey = `${year}-${m}-${name}`;
+      const entry = CF_DATA[cfKey];
+      const rawVal = entry ? entry.v : 0;
+      const hasOverride = data.cashflowEdits[cfKey] !== undefined;
+      const displayVal = hasOverride ? data.cashflowEdits[cfKey] : rawVal;
+      cellValues[`${ri}-${m}`] = displayVal;
+      if (type === 'income') incomeTotal[m] += displayVal;
+      if (type === 'expense') expenseTotal[m] += displayVal;
+    }
+  });
+
+  // Compute remaining and cumulative
+  const remaining = incomeTotal.map((v, i) => v - expenseTotal[i]);
+  const cumulative = [];
+  let cum = 0;
+  remaining.forEach(v => { cum += v; cumulative.push(cum); });
+
+  // Build table
   let html = '<thead><tr><th style="min-width:160px;">קטגוריה</th>';
   for (let m = 0; m <= maxMonth; m++) {
     html += `<th style="text-align:center;min-width:85px;">${MONTHS_HE[m]}</th>`;
@@ -3387,7 +3415,7 @@ function renderFixedCashflow(year, fixedMonths) {
 
   let lastType = '';
 
-  CF_STRUCTURE.forEach(row => {
+  CF_STRUCTURE.forEach((row, ri) => {
     const name = row.name;
     const type = row.type;
     const isTotal = (type === 'income-total' || type === 'expense-total' || type === 'remaining' || type === 'cumulative');
@@ -3414,25 +3442,32 @@ function renderFixedCashflow(year, fixedMonths) {
     let rowTotal = 0;
 
     for (let m = 0; m <= maxMonth; m++) {
-      const dataKey = `${year}-${m}-${name}`;
-      const entry = CF_DATA[dataKey];
-      const rawVal = entry ? entry.v : 0;
       const cfKey = `${year}-${m}-${name}`;
-      const hasOverride = data.cashflowEdits[cfKey] !== undefined;
-      const displayVal = hasOverride ? data.cashflowEdits[cfKey] : rawVal;
-      const note = entry ? entry.n : null;
+      const entry = CF_DATA[cfKey];
+      const excelNote = entry ? entry.n : null;
+      const userNote = data.cashflowNotes[cfKey];
+      const note = userNote || excelNote || null;
+
+      // Use computed values for total/summary rows
+      let displayVal;
+      if (type === 'income-total') displayVal = incomeTotal[m];
+      else if (type === 'expense-total') displayVal = expenseTotal[m];
+      else if (type === 'remaining') displayVal = remaining[m];
+      else if (type === 'cumulative') displayVal = cumulative[m];
+      else displayVal = cellValues[`${ri}-${m}`];
 
       rowTotal += displayVal;
 
       const noteClass = note ? ' cf-note' : '';
       const noteTitle = note ? ` title="${note.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"` : '';
+      const hasOverride = data.cashflowEdits[cfKey] !== undefined;
       const overrideClass = hasOverride ? ' cf-override' : '';
       const escapedKey = cfKey.replace(/'/g, "\\'");
 
       if (!isTotal) {
         html += `<td style="text-align:center;cursor:pointer;position:relative;" class="cf-editable${overrideClass}${noteClass}"${noteTitle} onclick="editCfCell(this,'${escapedKey}',${displayVal})">${valFn(displayVal)}</td>`;
       } else {
-        html += `<td style="text-align:center;${noteClass ? '' : ''}" class="${noteClass}"${noteTitle}>${valFn(displayVal)}</td>`;
+        html += `<td style="text-align:center;" class="${noteClass}"${noteTitle}>${valFn(displayVal)}</td>`;
       }
     }
 
@@ -3627,21 +3662,65 @@ function renderComputedCashflow(year) {
 }
 
 function editCfCell(td, cfKey, currentVal) {
-  if (td.querySelector('input')) return; // already editing
+  if (td.querySelector('.cf-edit-popup')) return; // already editing
   const oldCfVal = data.cashflowEdits[cfKey];
+  const oldNote = data.cashflowNotes[cfKey] || '';
+  // Get Excel note as placeholder
+  const entry = CF_DATA ? CF_DATA[cfKey] : null;
+  const excelNote = entry ? entry.n : '';
+
+  const popup = document.createElement('div');
+  popup.className = 'cf-edit-popup';
+  Object.assign(popup.style, {
+    position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+    zIndex: '1000', background: 'var(--card-bg)', border: '1px solid var(--accent)',
+    borderRadius: '8px', padding: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+    minWidth: '160px', direction: 'rtl'
+  });
+
   const input = document.createElement('input');
   input.type = 'number';
   input.value = currentVal || '';
   input.step = '0.01';
+  input.placeholder = 'סכום';
   Object.assign(input.style, {
-    width: '70px', textAlign: 'center', padding: '2px 4px',
-    background: 'var(--input-bg)', border: '1px solid var(--accent)',
-    color: 'var(--text)', borderRadius: '4px', fontFamily: 'inherit', fontSize: '0.85em'
+    width: '100%', textAlign: 'center', padding: '4px 6px', marginBottom: '6px',
+    background: 'var(--input-bg)', border: '1px solid var(--border)',
+    color: 'var(--text)', borderRadius: '4px', fontFamily: 'inherit', fontSize: '0.85em',
+    boxSizing: 'border-box'
   });
-  td.textContent = '';
-  td.appendChild(input);
+
+  const noteArea = document.createElement('textarea');
+  noteArea.value = oldNote || excelNote || '';
+  noteArea.placeholder = 'הערה...';
+  noteArea.rows = 2;
+  Object.assign(noteArea.style, {
+    width: '100%', padding: '4px 6px', resize: 'vertical',
+    background: 'var(--input-bg)', border: '1px solid var(--border)',
+    color: 'var(--text)', borderRadius: '4px', fontFamily: 'inherit', fontSize: '0.8em',
+    boxSizing: 'border-box', marginBottom: '6px'
+  });
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:4px;justify-content:center;';
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '✓';
+  saveBtn.style.cssText = 'padding:2px 10px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕';
+  cancelBtn.style.cssText = 'padding:2px 10px;background:var(--border);color:var(--text);border:none;border-radius:4px;cursor:pointer;font-size:0.85em;';
+  btnRow.appendChild(saveBtn);
+  btnRow.appendChild(cancelBtn);
+
+  popup.appendChild(input);
+  popup.appendChild(noteArea);
+  popup.appendChild(btnRow);
+
+  td.style.position = 'relative';
+  td.appendChild(popup);
   input.focus();
   input.select();
+
   function save() {
     const val = parseFloat(input.value);
     if (!isNaN(val)) {
@@ -3650,14 +3729,39 @@ function editCfCell(td, cfKey, currentVal) {
     } else {
       delete data.cashflowEdits[cfKey];
     }
+    const noteVal = noteArea.value.trim();
+    if (noteVal && noteVal !== excelNote) {
+      data.cashflowNotes[cfKey] = noteVal;
+    } else if (!noteVal) {
+      delete data.cashflowNotes[cfKey];
+    }
     saveData();
     renderCashflow();
   }
-  input.addEventListener('blur', save);
+
+  function cancel() {
+    popup.remove();
+  }
+
+  saveBtn.addEventListener('click', save);
+  cancelBtn.addEventListener('click', cancel);
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') { delete data.cashflowEdits[cfKey]; saveData(); renderCashflow(); }
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') cancel();
   });
+  noteArea.addEventListener('keydown', e => {
+    if (e.key === 'Escape') cancel();
+  });
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('mousedown', function handler(e) {
+      if (!popup.contains(e.target)) {
+        document.removeEventListener('mousedown', handler);
+        cancel();
+      }
+    });
+  }, 0);
 }
 
 // ===== IMPORT EXCEL DATA =====
