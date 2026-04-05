@@ -265,8 +265,8 @@ th, td {
 th { color: var(--text-muted); font-weight: 600; font-size: 0.85em; }
 td { font-size: 0.9em; }
 tr:hover td { background: rgba(0,212,170,0.03); }
-.amount-positive { color: var(--income); }
-.amount-negative { color: var(--expense); }
+.amount-positive { color: var(--income); direction: ltr; unicode-bidi: bidi-override; }
+.amount-negative { color: var(--expense); direction: ltr; unicode-bidi: bidi-override; }
 
 /* Forms */
 .form-card {
@@ -559,8 +559,8 @@ body.sidebar-open { overflow: hidden; }
 .cf-subtotal td { font-weight: 700; border-top: 2px solid var(--border); }
 .cf-grand td { font-weight: 700; font-size: 1em; border-top: 2px solid var(--accent); background: rgba(22,219,204,0.05); }
 .cf-sub td:first-child { padding-right: 32px; font-size: 0.85em; color: var(--text-muted); }
-.cf-positive { color: var(--income) !important; }
-.cf-negative { color: var(--expense) !important; }
+.cf-positive { color: var(--income) !important; direction: ltr; unicode-bidi: bidi-override; }
+.cf-negative { color: var(--expense) !important; direction: ltr; unicode-bidi: bidi-override; }
 .cf-zero { color: var(--text-muted) !important; }
 .cf-editable { background: rgba(22,219,204,0.04); }
 .cf-editable:hover { background: rgba(22,219,204,0.12); }
