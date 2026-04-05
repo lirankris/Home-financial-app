@@ -691,11 +691,12 @@ body.sidebar-open { overflow: hidden; }
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">💰 ניהול כספי</div>
-    <p class="login-subtitle">התחברות באמצעות קישור למייל</p>
+    <p class="login-subtitle">התחבר עם חשבון Google</p>
     <div id="login-form">
-      <label>כתובת אימייל</label>
-      <input type="email" id="login-email" placeholder="example@email.com" dir="ltr" onkeydown="if(event.key==='Enter')sendMagicLink()">
-      <button id="btn-send-link" onclick="sendMagicLink()">📧 שלח קישור התחברות</button>
+      <button id="btn-google-login" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#34A853" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#FBBC05" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-8.09 5.91C6.51 42.62 14.62 48 24 48z"/></svg>
+        התחבר עם Google
+      </button>
     </div>
     <div id="login-status" class="login-status"></div>
   </div>
@@ -1293,62 +1294,30 @@ function setLoginStatus(msg, type) {
   el.className = 'login-status ' + (type || '');
 }
 
-function sendMagicLink() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  if (!email) { setLoginStatus('נא להזין כתובת אימייל', 'error'); return; }
-  if (!ALLOWED_EMAILS.includes(email)) {
-    setLoginStatus('כתובת אימייל לא מורשית. פנה למנהל המערכת.', 'error');
-    return;
-  }
-  const actionCodeSettings = {
-    url: window.location.origin + window.location.pathname,
-    handleCodeInApp: true,
-  };
-  const btn = document.getElementById('btn-send-link');
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const btn = document.getElementById('btn-google-login');
   btn.disabled = true;
-  btn.textContent = 'שולח...';
+  btn.style.opacity = '0.6';
+  setLoginStatus('מתחבר...', 'info');
 
-  auth.sendSignInLinkToEmail(email, actionCodeSettings)
+  auth.signInWithPopup(provider)
     .then(() => {
-      window.localStorage.setItem('emailForSignIn', email);
-      setLoginStatus('קישור התחברות נשלח! בדוק את תיבת המייל שלך.', 'success');
-      btn.textContent = 'נשלח ✓';
+      btn.disabled = false;
+      btn.style.opacity = '1';
     })
     .catch((error) => {
       btn.disabled = false;
-      btn.textContent = '📧 שלח קישור התחברות';
-      if (error.code === 'auth/invalid-email') {
-        setLoginStatus('כתובת אימייל לא תקינה', 'error');
+      btn.style.opacity = '1';
+      if (error.code === 'auth/popup-closed-by-user') {
+        setLoginStatus('', '');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // ignore
       } else {
-        setLoginStatus('שגיאה בשליחת הקישור. נסה שוב.', 'error');
-        console.error('sendSignInLink error:', error);
+        setLoginStatus('שגיאה בהתחברות. נסה שוב.', 'error');
+        console.error('Google signIn error:', error);
       }
     });
-}
-
-function handleEmailLinkSignIn() {
-  if (firebase.auth.isSignInWithEmailLink(window.location.href)) {
-    let email = window.localStorage.getItem('emailForSignIn');
-    if (!email) {
-      email = window.prompt('נא להזין את כתובת האימייל שלך לאימות:');
-    }
-    if (!email) return;
-    setLoginStatus('מאמת...', 'info');
-
-    auth.signInWithEmailLink(email, window.location.href)
-      .then(() => {
-        window.localStorage.removeItem('emailForSignIn');
-        window.history.replaceState(null, '', window.location.pathname);
-      })
-      .catch((error) => {
-        if (error.code === 'auth/invalid-action-code') {
-          setLoginStatus('קישור ההתחברות פג תוקף או כבר שומש. נסה שוב.', 'error');
-        } else {
-          setLoginStatus('שגיאה באימות. נסה שוב.', 'error');
-          console.error('signInWithEmailLink error:', error);
-        }
-      });
-  }
 }
 
 let authInitialized = false;
@@ -1366,7 +1335,6 @@ auth.onAuthStateChanged((user) => {
     }
   } else {
     showLoginScreen();
-    handleEmailLinkSignIn();
   }
 });
 
