@@ -17,9 +17,11 @@
   --card: #232338;
   --card-hover: #2a2a42;
   --accent: #16dbcc;
+  --on-accent: #1a1a2e;
   --accent2: #4f46e5;
   --accent3: #ffbb38;
   --danger: #fe5c73;
+  --on-danger: #ffffff;
   --text: #e8e8ee;
   --text-muted: #9b9bb4;
   --border: #2e2e45;
@@ -38,15 +40,27 @@
   --btn-secondary-bg: #2a2a42;
   --btn-secondary-hover: #353554;
   --btn-secondary-hover-border: #3e3e5e;
+  --row-hover-bg: rgba(22,219,204,0.06);
+  --row-grand-bg: rgba(22,219,204,0.08);
+  --cat-income-bg: rgba(22,219,204,0.16);
+  --cat-expense-bg: rgba(254,92,115,0.16);
+  --cat-savings-bg: rgba(79,70,229,0.20);
+  --cf-section-text: #16dbcc;
+  --cf-editable-bg: rgba(22,219,204,0.05);
+  --cf-editable-hover-bg: rgba(22,219,204,0.14);
+  --cf-editable-selected-bg: rgba(22,219,204,0.28);
+  --sticky-shadow: -2px 0 6px rgba(0,0,0,0.3);
 }
 [data-theme="light"] {
   --bg: #f4f5f7;
   --card: #ffffff;
   --card-hover: #f9fafb;
   --accent: #16dbcc;
+  --on-accent: #1a1a2e;
   --accent2: #4f46e5;
   --accent3: #ffbb38;
   --danger: #fe5c73;
+  --on-danger: #ffffff;
   --text: #1a1a2e;
   --text-muted: #6b7280;
   --border: #e6e9ed;
@@ -65,6 +79,16 @@
   --btn-secondary-bg: #eef0f3;
   --btn-secondary-hover: #dfe3e8;
   --btn-secondary-hover-border: #c8cdd4;
+  --row-hover-bg: rgba(22,219,204,0.10);
+  --row-grand-bg: rgba(22,219,204,0.16);
+  --cat-income-bg: rgba(22,219,204,0.20);
+  --cat-expense-bg: rgba(254,92,115,0.16);
+  --cat-savings-bg: rgba(79,70,229,0.14);
+  --cf-section-text: #0e8a80;
+  --cf-editable-bg: rgba(22,219,204,0.07);
+  --cf-editable-hover-bg: rgba(22,219,204,0.18);
+  --cf-editable-selected-bg: rgba(22,219,204,0.32);
+  --sticky-shadow: -2px 0 6px rgba(0,0,0,0.08);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -94,7 +118,7 @@ body {
   text-align: center;
 }
 .sidebar .logo h2 { color: var(--accent); font-size: 1.3em; }
-.sidebar .logo small { color: #9b9bb4; font-size: 0.75em; }
+.sidebar .logo small { color: var(--sidebar-text); font-size: 0.75em; }
 .sidebar nav { flex: 1; padding-top: 10px; }
 .sidebar nav a {
   display: flex;
@@ -174,7 +198,7 @@ body {
 .cat-search-drop .cat-option {
   padding: 5px 10px; font-size: 0.85em; cursor: pointer; color: var(--text); background: var(--card);
 }
-.cat-search-drop .cat-option:hover, .cat-search-drop .cat-option.highlighted { background: var(--accent); color: #fff; }
+.cat-search-drop .cat-option:hover, .cat-search-drop .cat-option.highlighted { background: var(--accent); color: var(--on-accent); }
 .cat-search-drop .cat-option.selected { color: var(--accent); font-weight: 600; }
 .main { margin-right: 240px; flex: 1; padding: 24px; overflow-x: hidden; }
 
@@ -270,7 +294,7 @@ th, td {
 }
 th { color: var(--text-muted); font-weight: 600; font-size: 0.85em; }
 td { font-size: 0.9em; }
-tr:hover td { background: rgba(22,219,204,0.04); }
+tr:hover td { background: var(--row-hover-bg); }
 .amount-positive { color: var(--income); direction: ltr; unicode-bidi: bidi-override; }
 .amount-negative { color: var(--expense); direction: ltr; unicode-bidi: bidi-override; }
 
@@ -317,9 +341,9 @@ tr:hover td { background: rgba(22,219,204,0.04); }
   transition: all 0.2s;
   font-family: inherit;
 }
-.btn-primary { background: var(--accent); color: var(--bg); font-weight: 600; }
+.btn-primary { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .btn-primary:hover { filter: brightness(1.08); }
-.btn-danger { background: var(--danger); color: white; }
+.btn-danger { background: var(--danger); color: var(--on-danger); }
 .btn-danger:hover { opacity: 0.9; }
 .btn-secondary { background: var(--btn-secondary-bg); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { background: var(--btn-secondary-hover); border-color: var(--btn-secondary-hover-border); }
@@ -360,9 +384,9 @@ tr:hover td { background: rgba(22,219,204,0.04); }
   font-size: 0.78em;
   font-weight: 600;
 }
-.cat-income { background: rgba(16,185,129,0.15); color: var(--income); }
-.cat-expense { background: rgba(239,68,68,0.15); color: var(--expense); }
-.cat-savings { background: rgba(59,130,246,0.15); color: var(--savings); }
+.cat-income { background: var(--cat-income-bg); color: var(--income); }
+.cat-expense { background: var(--cat-expense-bg); color: var(--expense); }
+.cat-savings { background: var(--cat-savings-bg); color: var(--savings); }
 
 /* Page sections */
 .page { display: none; }
@@ -374,7 +398,7 @@ tr:hover td { background: rgba(22,219,204,0.04); }
   bottom: 24px;
   left: 24px;
   background: var(--accent);
-  color: var(--bg);
+  color: var(--on-accent);
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -558,30 +582,30 @@ body.sidebar-open { overflow: hidden; }
   font-size: 0.9em;
   transition: all 0.2s;
 }
-.tab-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.tab-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 /* Cashflow table */
-#cf-table th:first-child, #cf-table td:first-child { position: sticky; right: 0; z-index: 2; background: var(--card); box-shadow: -2px 0 6px rgba(0,0,0,0.3); }
+#cf-table th:first-child, #cf-table td:first-child { position: sticky; right: 0; z-index: 2; background: var(--card); box-shadow: var(--sticky-shadow); }
 #cf-table thead th:first-child { z-index: 3; background: var(--card); }
-#cf-table .cf-section-header td { background: var(--card-hover); font-weight: 700; font-size: 0.9em; color: var(--accent); }
+#cf-table .cf-section-header td { background: var(--card-hover); font-weight: 700; font-size: 0.9em; color: var(--cf-section-text); }
 #cf-table .cf-section-header td:first-child { background: var(--card-hover); }
 #cf-table .cf-subtotal td { font-weight: 700; border-top: 2px solid var(--border); }
-#cf-table .cf-grand td { font-weight: 700; font-size: 1em; border-top: 2px solid var(--accent); background: rgba(22,219,204,0.05); }
-#cf-table .cf-grand td:first-child { background: var(--card); }
+#cf-table .cf-grand td { font-weight: 700; font-size: 1em; border-top: 2px solid var(--accent); background: var(--row-grand-bg); }
+#cf-table .cf-grand td:first-child { background: var(--row-grand-bg); }
 .cf-sub td:first-child { padding-right: 32px; font-size: 0.85em; color: var(--text-muted); }
 .cf-positive { color: var(--income) !important; direction: ltr; unicode-bidi: bidi-override; }
 .cf-negative { color: var(--expense) !important; direction: ltr; unicode-bidi: bidi-override; }
 .cf-zero { color: var(--text-muted) !important; }
-.cf-editable { background: rgba(22,219,204,0.04); }
-.cf-editable:hover { background: rgba(22,219,204,0.12); }
-.cf-editable.cf-selected { background: rgba(22,219,204,0.25); outline: 2px solid var(--accent); outline-offset: -2px; }
+.cf-editable { background: var(--cf-editable-bg); }
+.cf-editable:hover { background: var(--cf-editable-hover-bg); }
+.cf-editable.cf-selected { background: var(--cf-editable-selected-bg); outline: 2px solid var(--accent); outline-offset: -2px; }
 .cf-override { border-bottom: 2px solid var(--accent) !important; }
 .cf-from-tx { border-right: 3px solid var(--income); }
 .cf-note { position: relative; }
 .cf-note::after { content: '📝'; position: absolute; top: 1px; left: 2px; font-size: 0.55em; opacity: 0.7; }
 .cf-note:hover::after { opacity: 1; }
 .cf-note[title] { cursor: help; }
-.cf-bulk-badge { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; border-radius: 24px; padding: 10px 24px; display: flex; align-items: center; gap: 12px; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.4); cursor: pointer; font-family: inherit; font-size: 0.9em; direction: rtl; white-space: nowrap; }
+.cf-bulk-badge { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); border-radius: 24px; padding: 10px 24px; display: flex; align-items: center; gap: 12px; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.4); cursor: pointer; font-family: inherit; font-size: 0.9em; direction: rtl; white-space: nowrap; }
 .cf-bulk-badge:hover { filter: brightness(1.15); }
 .cf-bulk-badge .cf-badge-x { margin-right: 8px; opacity: 0.7; cursor: pointer; font-size: 1.1em; }
 .cf-bulk-badge .cf-badge-x:hover { opacity: 1; }
@@ -591,7 +615,7 @@ body.sidebar-open { overflow: hidden; }
 .cf-bulk-popup .cf-bulk-preview { font-size: 0.85em; color: var(--text-muted); min-height: 1.2em; direction: ltr; }
 .cf-bulk-popup .cf-bulk-btns { display: flex; gap: 8px; width: 100%; }
 .cf-bulk-popup button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.9em; flex: 1; }
-.cf-bulk-popup .cf-bulk-save { background: var(--accent); color: #fff; }
+.cf-bulk-popup .cf-bulk-save { background: var(--accent); color: var(--on-accent); }
 .cf-bulk-popup .cf-bulk-clear { background: var(--border); color: var(--text); }
 .cf-bulk-popup .cf-bulk-count { font-size: 0.95em; color: var(--accent); font-weight: 600; }
 
@@ -1239,11 +1263,17 @@ body.sidebar-open { overflow: hidden; }
         </div>
       </div>
       <div class="form-card">
-        <h3>ייבוא נתונים מאקסל</h3>
-        <p style="color:var(--text-muted);font-size:0.85em;margin-bottom:12px;">ייבוא כל הנתונים מקובץ האקסל (אשראי לירן, אשראי עופרי, בנק לירן, בנק עופרי, השקעות, משימות)</p>
-        <div class="actions">
-          <button class="btn btn-primary" onclick="importExcelData()" id="btn-import-excel">📊 ייבוא נתונים מאקסל</button>
-          <span id="import-status" style="font-size:0.85em;color:var(--text-muted);align-self:center;"></span>
+        <h3>🤖 סוכן קטגריזציה אוטומטי</h3>
+        <p style="color:var(--text-muted);font-size:0.82em;margin-bottom:10px;">סוכן AI שמשייך קטגוריות לתנועות בנק אוטומטית בעת ייבוא קובץ. דורש מפתח Anthropic API.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <input type="password" id="ai-api-key" placeholder="sk-ant-..." style="background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;flex:1;font-family:inherit;font-size:0.85em;">
+          <button class="btn btn-primary btn-sm" onclick="saveAiApiKey()">שמור מפתח</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85em;cursor:pointer;">
+            <input type="checkbox" id="ai-auto-run" onchange="saveAiAutoRun()"> הפעל אוטומטית בפתיחת תצוגה מקדימה
+          </label>
+          <span id="ai-key-status" style="font-size:0.78em;color:var(--text-muted);margin-right:auto;"></span>
         </div>
       </div>
       <div class="form-card">
@@ -2267,6 +2297,15 @@ function renderBankPreview() {
 
   // Separate category assignment section
   html += `<div class="bank-cat-assign" style="margin-top:16px;">`;
+  // AI agent banner (up front)
+  html += `<div class="ai-agent-banner" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:12px;background:linear-gradient(135deg, var(--cf-editable-hover-bg), var(--cf-editable-bg));border:1px solid var(--accent);border-radius:10px;">`;
+  html += `<div style="font-size:1.4em;line-height:1;">🤖</div>`;
+  html += `<div style="flex:1;min-width:0;">`;
+  html += `<div style="font-weight:600;font-size:0.92em;margin-bottom:2px;">סוכן קטגריזציה אוטומטי</div>`;
+  html += `<div id="ai-agent-status" style="font-size:0.78em;color:var(--text-muted);">משייך קטגוריות לפי תיאור התנועה והיסטוריית הקניות שלך</div>`;
+  html += `</div>`;
+  html += `<button class="btn btn-primary btn-sm" id="ai-agent-btn" onclick="aiCategorizeRows()" style="white-space:nowrap;">✨ הפעל סוכן</button>`;
+  html += `</div>`;
   html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">`;
   html += `<h4 style="margin:0;font-size:0.95em;">שיוך קטגוריה לכל שורה</h4>`;
   html += `<div style="display:flex;align-items:center;gap:6px;">`;
@@ -2318,13 +2357,14 @@ function renderBankPreview() {
     const amtDisplay = amtNum ? `₪${Math.abs(amtNum).toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '';
     const sel = bankImportData.rowCategories[rowIdx] || '';
 
-    html += `<div class="bank-cat-row" data-ri="${rowIdx}" style="display:grid;grid-template-columns:90px 1fr 90px 160px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
+    html += `<div class="bank-cat-row" data-ri="${rowIdx}" style="display:grid;grid-template-columns:90px 1fr 90px 160px 32px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
     html += `<span style="font-size:0.82em;color:var(--text-muted);white-space:nowrap;">${dateStr}</span>`;
     html += `<span style="font-size:0.88em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${desc || '—'}</span>`;
     html += `<span style="font-size:0.85em;font-weight:600;white-space:nowrap;text-align:left;">${amtDisplay}</span>`;
     html += `<div class="cat-search-wrap" data-row="${rowIdx}" style="min-width:160px;max-width:160px;">`;
     html += `<input type="text" value="${sel}" placeholder="חפש קטגוריה..." onfocus="openCatSearch(this)" oninput="filterCatSearch(this)">`;
     html += `<div class="cat-search-drop"></div></div>`;
+    html += `<button class="del-btn" title="מחק שורה" onclick="deleteBankRow(${rowIdx})" style="font-size:1em;">✕</button>`;
     html += `</div>`;
   });
   html += `</div></div>`;
@@ -2339,11 +2379,201 @@ function renderBankPreview() {
     filterEl.value = prevFilter;
     if (prevFilter !== 'all') filterBankCatRows();
   }
+  // Auto-run AI agent on first render if enabled
+  if (!bankImportData._aiAutoRan && localStorage.getItem('aiAutoRun') === '1' && localStorage.getItem('aiApiKey')) {
+    bankImportData._aiAutoRan = true;
+    setTimeout(() => aiCategorizeRows(), 100);
+  }
 }
 
 function highlightBankRow(idx, on) {
   const row = document.querySelector(`.bank-preview-table tr[data-row="${idx}"]`);
   if (row) row.style.background = on ? 'rgba(22,219,204,0.15)' : '';
+}
+
+function deleteBankRow(rowIdx) {
+  if (!bankImportData) return;
+  bankImportData.rows.splice(rowIdx, 1);
+  if (bankImportData.rowCategories) bankImportData.rowCategories.splice(rowIdx, 1);
+  renderBankPreview();
+}
+
+// ===== AI CATEGORIZATION AGENT =====
+function saveAiApiKey() {
+  const key = document.getElementById('ai-api-key').value.trim();
+  if (!key) { showToast('יש להזין מפתח API'); return; }
+  if (!key.startsWith('sk-ant-')) { showToast('מפתח לא תקין - חייב להתחיל ב-sk-ant-'); return; }
+  localStorage.setItem('aiApiKey', key);
+  document.getElementById('ai-key-status').textContent = '✓ מפתח נשמר';
+  document.getElementById('ai-key-status').style.color = 'var(--income)';
+  showToast('מפתח API נשמר');
+}
+
+function saveAiAutoRun() {
+  localStorage.setItem('aiAutoRun', document.getElementById('ai-auto-run').checked ? '1' : '0');
+}
+
+function loadAiSettings() {
+  const key = localStorage.getItem('aiApiKey') || '';
+  const keyInput = document.getElementById('ai-api-key');
+  const autoInput = document.getElementById('ai-auto-run');
+  const status = document.getElementById('ai-key-status');
+  if (keyInput) keyInput.value = key;
+  if (autoInput) autoInput.checked = localStorage.getItem('aiAutoRun') === '1';
+  if (status && key) {
+    status.textContent = '✓ מפתח שמור';
+    status.style.color = 'var(--income)';
+  }
+}
+
+async function aiCategorizeRows() {
+  if (!bankImportData) return;
+  const apiKey = localStorage.getItem('aiApiKey');
+  if (!apiKey) {
+    showToast('אנא הגדר מפתח Anthropic API בעמוד ההגדרות');
+    showPage('settings');
+    return;
+  }
+
+  const btn = document.getElementById('ai-agent-btn');
+  const statusEl = document.getElementById('ai-agent-status');
+  const origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ חושב...';
+
+  try {
+    const expCats = (data.categories.expense || []).map(c => c.name);
+    const incCats = (data.categories.income || []).map(c => c.name);
+    const descCol = parseInt(document.getElementById('map-desc').value);
+    const amountCol = parseInt(document.getElementById('map-amount').value);
+    const creditCol = parseInt(document.getElementById('map-credit').value);
+
+    if (descCol < 0) {
+      showToast('יש למפות עמודת תיאור לפני הפעלת הסוכן');
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      return;
+    }
+
+    // Build historical examples (top desc→category pairs)
+    const histMap = {};
+    data.transactions.forEach(t => {
+      if (t.desc && t.category) {
+        const k = t.desc.trim() + '||' + t.category;
+        histMap[k] = (histMap[k] || 0) + 1;
+      }
+    });
+    const histExamples = Object.entries(histMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 40)
+      .map(([k]) => { const [d, c] = k.split('||'); return { desc: d, cat: c }; });
+
+    // Collect rows that need categorization (only ones without an existing assignment, with data)
+    const targets = [];
+    bankImportData.rows.forEach((row, idx) => {
+      const desc = String(row[descCol] || '').trim();
+      const amt = amountCol >= 0 ? row[amountCol] : '';
+      const cr = creditCol >= 0 ? row[creditCol] : '';
+      if (!desc && !amt && !cr) return;
+      if (bankImportData.rowCategories[idx]) return; // already assigned
+      let amtNum = typeof amt === 'number' ? amt : parseBankAmount(amt);
+      if ((!amtNum || amtNum === 0) && cr) amtNum = typeof cr === 'number' ? cr : parseBankAmount(cr);
+      const isCredit = creditCol >= 0 && cr && parseBankAmount(cr) > 0;
+      targets.push({ idx, desc, amount: amtNum || 0, isCredit });
+    });
+
+    if (targets.length === 0) {
+      statusEl.textContent = 'כל השורות כבר משויכות לקטגוריה';
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      return;
+    }
+
+    statusEl.textContent = `מעבד ${targets.length} שורות...`;
+
+    // Batch in chunks to keep responses manageable
+    const BATCH_SIZE = 60;
+    let processed = 0;
+    for (let start = 0; start < targets.length; start += BATCH_SIZE) {
+      const batch = targets.slice(start, start + BATCH_SIZE);
+      const assignments = await callAiCategorizer(apiKey, batch, expCats, incCats, histExamples);
+      assignments.forEach((cat, i) => {
+        const t = batch[i];
+        if (cat && (expCats.includes(cat) || incCats.includes(cat))) {
+          bankImportData.rowCategories[t.idx] = cat;
+        }
+      });
+      processed += batch.length;
+      statusEl.textContent = `עובד... ${processed}/${targets.length}`;
+    }
+
+    const assignedNow = bankImportData.rowCategories.filter(c => c).length;
+    statusEl.textContent = `✓ הסוכן סיים. ${assignedNow} שורות משויכות`;
+    renderBankPreview();
+    showToast(`הסוכן שייך ${assignedNow} שורות`);
+  } catch (err) {
+    console.error('AI categorize error', err);
+    statusEl.textContent = 'שגיאה: ' + err.message;
+    statusEl.style.color = 'var(--danger)';
+    showToast('שגיאה בהפעלת הסוכן: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+}
+
+async function callAiCategorizer(apiKey, batch, expCats, incCats, histExamples) {
+  const sys = 'You are a transaction categorizer for a Hebrew personal finance app. Given a list of bank transactions, assign each to exactly one category from the provided lists. Use the user\'s historical assignments as the strongest signal. If no category fits well, return empty string for that transaction. Respond with ONLY a JSON array of strings (one per transaction, in the same order). No explanation, no markdown.';
+
+  const histText = histExamples.length
+    ? '\n\nUSER HISTORY (description → category):\n' + histExamples.map(h => `- "${h.desc}" → ${h.cat}`).join('\n')
+    : '';
+
+  const txList = batch.map((t, i) => {
+    const sign = t.isCredit ? '+' : '-';
+    return `${i + 1}. desc="${t.desc.replace(/"/g, "'")}" amount=${sign}${Math.abs(t.amount)}`;
+  }).join('\n');
+
+  const userMsg = `EXPENSE CATEGORIES: ${expCats.join(', ')}
+INCOME CATEGORIES: ${incCats.join(', ')}${histText}
+
+TRANSACTIONS TO CATEGORIZE:
+${txList}
+
+Return a JSON array of ${batch.length} category strings, in order. Use "" if uncertain. Output ONLY the JSON array.`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      system: sys,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`API ${resp.status}: ${txt.slice(0, 200)}`);
+  }
+  const json = await resp.json();
+  const text = json.content?.[0]?.text || '';
+  // Extract JSON array from response
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('תגובת ה-AI לא תקינה');
+  let arr;
+  try { arr = JSON.parse(match[0]); }
+  catch (e) { throw new Error('שגיאת parse: ' + e.message); }
+  if (!Array.isArray(arr)) throw new Error('תגובה אינה מערך');
+  // Pad/truncate to batch length
+  while (arr.length < batch.length) arr.push('');
+  return arr.slice(0, batch.length).map(c => typeof c === 'string' ? c.trim() : '');
 }
 
 function filterBankCatRows() {
@@ -3068,6 +3298,7 @@ const CAT_PAGE_SIZE = 15;
 function renderSettings() {
   renderCatList();
   renderAggregationSectors();
+  loadAiSettings();
 }
 
 function renderCatList() {
@@ -4092,74 +4323,6 @@ function editCfCell(td, cfKey, currentVal) {
       }
     });
   }, 0);
-}
-
-// ===== IMPORT EXCEL DATA =====
-function importExcelData() {
-  if (typeof SEED_DATA === 'undefined') {
-    showToast('קובץ נתוני האקסל לא נמצא');
-    return;
-  }
-  if (!confirm('ייבוא ' + SEED_DATA.transactions.length + ' תנועות מהאקסל.\nהנתונים יתווספו לנתונים הקיימים.\nלהמשיך?')) return;
-
-  const status = document.getElementById('import-status');
-  status.textContent = 'מייבא נתונים...';
-
-  // Add transactions (avoid duplicates by checking if seed was already imported)
-  const existingIds = new Set(data.transactions.map(t => t.id));
-  let added = 0;
-  SEED_DATA.transactions.forEach(t => {
-    if (!existingIds.has(t.id)) {
-      data.transactions.push(t);
-      added++;
-    }
-  });
-
-  // Merge categories - add any missing expense categories
-  const existingCats = new Set(data.categories.expense.map(c => c.name));
-  SEED_DATA.extra_expense_categories.forEach(cat => {
-    if (!existingCats.has(cat)) {
-      data.categories.expense.push({name: cat, subs: []});
-    }
-  });
-
-  // Add income category for bank transfers if missing
-  const existingIncome = new Set(data.categories.income.map(c => c.name));
-  if (!existingIncome.has('העברה בנקאית')) {
-    data.categories.income.push({name: 'העברה בנקאית', subs: []});
-  }
-
-  // Update investments/savings from seed
-  if (SEED_DATA.investments && SEED_DATA.investments.length > 0) {
-    data.savings = SEED_DATA.investments.map(inv => ({
-      name: inv.name,
-      original: inv.deposited,
-      current: inv.current,
-      liquid: inv.liquidity || '',
-      updated: inv.lastUpdate || ''
-    }));
-  }
-
-  // Import dreams
-  if (SEED_DATA.dreams && SEED_DATA.dreams.length > 0) {
-    data.dreams = SEED_DATA.dreams;
-  }
-
-  // Import missions
-  if (SEED_DATA.missions && SEED_DATA.missions.length > 0) {
-    if (!data.missions) data.missions = [];
-    const existingTasks = new Set(data.missions.map(m => m.task));
-    SEED_DATA.missions.forEach(m => {
-      if (!existingTasks.has(m.task)) {
-        data.missions.push({task: m.task, owner: m.owner, done: false});
-      }
-    });
-  }
-
-  saveData();
-  logActivity('import_data', `ייבוא נתוני אקסל: ${added} תנועות`);
-  status.textContent = `הושלם! ${added} תנועות יובאו.`;
-  showToast(`✅ יובאו ${added} תנועות בהצלחה!`);
 }
 
 // ===== MISSIONS =====
