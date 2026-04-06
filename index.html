@@ -2455,18 +2455,32 @@ async function aiCategorizeRows() {
       return;
     }
 
-    // Build historical examples (top desc→category pairs)
+    // Build a comprehensive history index from ALL past transactions
+    // For each unique (desc, category) pair count occurrences, then derive
+    // both a "globally frequent" list and a per-batch keyword index.
     const histMap = {};
     data.transactions.forEach(t => {
       if (t.desc && t.category) {
-        const k = t.desc.trim() + '||' + t.category;
-        histMap[k] = (histMap[k] || 0) + 1;
+        const d = t.desc.trim();
+        const k = d + '||' + t.category;
+        if (!histMap[k]) histMap[k] = { desc: d, cat: t.category, count: 0 };
+        histMap[k].count++;
       }
     });
-    const histExamples = Object.entries(histMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 40)
-      .map(([k]) => { const [d, c] = k.split('||'); return { desc: d, cat: c }; });
+    const allHist = Object.values(histMap);
+    // Top 25 globally frequent — provide a baseline of recurring patterns
+    const histTopGlobal = [...allHist]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 25);
+    // Keyword index: word (>=3 chars) → list of history entries
+    const histByWord = {};
+    allHist.forEach(h => {
+      const words = h.desc.toLowerCase().split(/[\s\-\/.,()]+/).filter(w => w.length >= 3);
+      [...new Set(words)].forEach(w => {
+        if (!histByWord[w]) histByWord[w] = [];
+        histByWord[w].push(h);
+      });
+    });
 
     // Collect rows that need categorization (only ones without an existing assignment, with data)
     const targets = [];
@@ -2496,7 +2510,30 @@ async function aiCategorizeRows() {
     let processed = 0;
     for (let start = 0; start < targets.length; start += BATCH_SIZE) {
       const batch = targets.slice(start, start + BATCH_SIZE);
-      const assignments = await callAiCategorizer(apiKey, batch, expCats, incCats, histExamples);
+      // Build per-batch relevant history: scan keywords from this batch
+      // and pull matching historical entries (deduplicated, scored).
+      const relevantScore = new Map(); // history entry -> match score
+      batch.forEach(t => {
+        const words = t.desc.toLowerCase().split(/[\s\-\/.,()]+/).filter(w => w.length >= 3);
+        [...new Set(words)].forEach(w => {
+          (histByWord[w] || []).forEach(h => {
+            relevantScore.set(h, (relevantScore.get(h) || 0) + h.count);
+          });
+        });
+      });
+      const histRelevant = [...relevantScore.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 60)
+        .map(([h]) => h);
+      // Merge: relevant first, then global top (deduped)
+      const mergedHist = [...histRelevant];
+      const seen = new Set(histRelevant.map(h => h.desc + '||' + h.cat));
+      histTopGlobal.forEach(h => {
+        const k = h.desc + '||' + h.cat;
+        if (!seen.has(k)) { mergedHist.push(h); seen.add(k); }
+      });
+
+      const assignments = await callAiCategorizer(apiKey, batch, expCats, incCats, mergedHist);
       assignments.forEach((cat, i) => {
         const t = batch[i];
         if (cat && (expCats.includes(cat) || incCats.includes(cat))) {
@@ -2523,10 +2560,10 @@ async function aiCategorizeRows() {
 }
 
 async function callAiCategorizer(apiKey, batch, expCats, incCats, histExamples) {
-  const sys = 'You are a transaction categorizer for a Hebrew personal finance app. Given a list of bank transactions, assign each to exactly one category from the provided lists. Use the user\'s historical assignments as the strongest signal. If no category fits well, return empty string for that transaction. Respond with ONLY a JSON array of strings (one per transaction, in the same order). No explanation, no markdown.';
+  const sys = 'You are a transaction categorizer for a Hebrew personal finance app. Given a list of bank transactions, assign each to exactly one category from the provided lists. The user\'s historical assignments (provided below, with occurrence counts) are your STRONGEST signal — when a transaction description matches or closely resembles a historical one, prefer the same category. Higher counts mean stronger evidence. Only fall back to inferring from the description text when no historical match exists. If no category fits well, return empty string for that transaction. Respond with ONLY a JSON array of strings (one per transaction, in the same order). No explanation, no markdown.';
 
   const histText = histExamples.length
-    ? '\n\nUSER HISTORY (description → category):\n' + histExamples.map(h => `- "${h.desc}" → ${h.cat}`).join('\n')
+    ? '\n\nUSER HISTORY (description → category, count):\n' + histExamples.map(h => `- "${h.desc}" → ${h.cat} (×${h.count})`).join('\n')
     : '';
 
   const txList = batch.map((t, i) => {
@@ -2552,7 +2589,7 @@ Return a JSON array of ${batch.length} category strings, in order. Use "" if unc
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: sys,
       messages: [{ role: 'user', content: userMsg }]
     })
