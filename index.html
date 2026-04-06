@@ -2534,9 +2534,15 @@ async function aiCategorizeRows() {
       });
 
       const assignments = await callAiCategorizer(apiKey, batch, expCats, incCats, mergedHist);
+      const expSet = new Set(expCats);
+      const incSet = new Set(incCats);
       assignments.forEach((cat, i) => {
         const t = batch[i];
-        if (cat && (expCats.includes(cat) || incCats.includes(cat))) {
+        if (!cat) return;
+        // Hard rule: income rows (credit) must use income categories,
+        // expense rows (debit) must use expense categories.
+        const allowed = t.isCredit ? incSet : expSet;
+        if (allowed.has(cat)) {
           bankImportData.rowCategories[t.idx] = cat;
         }
       });
@@ -2560,24 +2566,24 @@ async function aiCategorizeRows() {
 }
 
 async function callAiCategorizer(apiKey, batch, expCats, incCats, histExamples) {
-  const sys = 'You are a transaction categorizer for a Hebrew personal finance app. Given a list of bank transactions, assign each to exactly one category from the provided lists. The user\'s historical assignments (provided below, with occurrence counts) are your STRONGEST signal — when a transaction description matches or closely resembles a historical one, prefer the same category. Higher counts mean stronger evidence. Only fall back to inferring from the description text when no historical match exists. If no category fits well, return empty string for that transaction. Respond with ONLY a JSON array of strings (one per transaction, in the same order). No explanation, no markdown.';
+  const sys = 'You are a transaction categorizer for a Hebrew personal finance app. Given a list of bank transactions, assign each to exactly one category from the provided lists. CRITICAL RULES: (1) Each transaction is marked [EXPENSE] or [INCOME] — you MUST pick from the matching list only. NEVER assign an EXPENSE category to an [INCOME] transaction or vice versa. (2) The user\'s historical assignments (provided below, with occurrence counts) are your STRONGEST signal — when a description matches or closely resembles a historical one of the same type, prefer the same category. Higher counts mean stronger evidence. (3) If no category fits well, return empty string. Respond with ONLY a JSON array of strings (one per transaction, in the same order). No explanation, no markdown.';
 
   const histText = histExamples.length
     ? '\n\nUSER HISTORY (description → category, count):\n' + histExamples.map(h => `- "${h.desc}" → ${h.cat} (×${h.count})`).join('\n')
     : '';
 
   const txList = batch.map((t, i) => {
-    const sign = t.isCredit ? '+' : '-';
-    return `${i + 1}. desc="${t.desc.replace(/"/g, "'")}" amount=${sign}${Math.abs(t.amount)}`;
+    const tag = t.isCredit ? '[INCOME]' : '[EXPENSE]';
+    return `${i + 1}. ${tag} desc="${t.desc.replace(/"/g, "'")}" amount=${Math.abs(t.amount)}`;
   }).join('\n');
 
-  const userMsg = `EXPENSE CATEGORIES: ${expCats.join(', ')}
-INCOME CATEGORIES: ${incCats.join(', ')}${histText}
+  const userMsg = `EXPENSE CATEGORIES (use ONLY for [EXPENSE] rows): ${expCats.join(', ')}
+INCOME CATEGORIES (use ONLY for [INCOME] rows): ${incCats.join(', ')}${histText}
 
 TRANSACTIONS TO CATEGORIZE:
 ${txList}
 
-Return a JSON array of ${batch.length} category strings, in order. Use "" if uncertain. Output ONLY the JSON array.`;
+Return a JSON array of ${batch.length} category strings, in order. Each must come from the matching list for that row's tag, or "" if uncertain. Output ONLY the JSON array.`;
 
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
