@@ -2350,6 +2350,13 @@ function renderBankPreview() {
         dateStr = String(dateVal);
       }
     }
+    // Determine type (income vs expense) — credit column with positive value = income
+    const debitNum = amountCol >= 0 ? (typeof row[amountCol] === 'number' ? row[amountCol] : parseBankAmount(row[amountCol])) : 0;
+    const creditNum = creditCol >= 0 ? (typeof row[creditCol] === 'number' ? row[creditCol] : parseBankAmount(row[creditCol])) : 0;
+    const isIncome = creditNum > 0 && (!debitNum || debitNum === 0);
+    const typeLabel = isIncome ? 'הכנסה' : 'הוצאה';
+    const typeBg = isIncome ? 'var(--cat-income-bg)' : 'var(--cat-expense-bg)';
+    const typeColor = isIncome ? 'var(--income)' : 'var(--expense)';
     // Format amount
     let amtRaw = amountCol >= 0 ? row[amountCol] : '';
     if ((!amtRaw || amtRaw === '' || amtRaw === 0) && creditCol >= 0 && row[creditCol]) amtRaw = row[creditCol];
@@ -2357,9 +2364,10 @@ function renderBankPreview() {
     const amtDisplay = amtNum ? `₪${Math.abs(amtNum).toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '';
     const sel = bankImportData.rowCategories[rowIdx] || '';
 
-    html += `<div class="bank-cat-row" data-ri="${rowIdx}" style="display:grid;grid-template-columns:90px 1fr 90px 160px 32px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
+    html += `<div class="bank-cat-row" data-ri="${rowIdx}" style="display:grid;grid-template-columns:90px 1fr 64px 90px 160px 32px;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);" onmouseenter="highlightBankRow(${rowIdx},true)" onmouseleave="highlightBankRow(${rowIdx},false)">`;
     html += `<span style="font-size:0.82em;color:var(--text-muted);white-space:nowrap;">${dateStr}</span>`;
     html += `<span style="font-size:0.88em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${desc || '—'}</span>`;
+    html += `<span style="font-size:0.72em;font-weight:600;text-align:center;padding:3px 6px;border-radius:6px;background:${typeBg};color:${typeColor};white-space:nowrap;">${typeLabel}</span>`;
     html += `<span style="font-size:0.85em;font-weight:600;white-space:nowrap;text-align:left;">${amtDisplay}</span>`;
     html += `<div class="cat-search-wrap" data-row="${rowIdx}" style="min-width:160px;max-width:160px;">`;
     html += `<input type="text" value="${sel}" placeholder="חפש קטגוריה..." onfocus="openCatSearch(this)" oninput="filterCatSearch(this)">`;
