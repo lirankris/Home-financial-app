@@ -35,6 +35,9 @@
   --sidebar-active-text: #1a1a2e;
   --card-shadow: 0 2px 12px rgba(0,0,0,0.25);
   --nav-hover-bg: rgba(22,219,204,0.08);
+  --btn-secondary-bg: #2a2a42;
+  --btn-secondary-hover: #353554;
+  --btn-secondary-hover-border: #3e3e5e;
 }
 [data-theme="light"] {
   --bg: #f4f5f7;
@@ -59,6 +62,9 @@
   --sidebar-active-text: #1a1a2e;
   --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
   --nav-hover-bg: rgba(22,219,204,0.08);
+  --btn-secondary-bg: #eef0f3;
+  --btn-secondary-hover: #dfe3e8;
+  --btn-secondary-hover-border: #c8cdd4;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -87,7 +93,7 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
   text-align: center;
 }
-.sidebar .logo h2 { color: #16dbcc; font-size: 1.3em; }
+.sidebar .logo h2 { color: var(--accent); font-size: 1.3em; }
 .sidebar .logo small { color: #9b9bb4; font-size: 0.75em; }
 .sidebar nav { flex: 1; padding-top: 10px; }
 .sidebar nav a {
@@ -106,7 +112,7 @@ body {
 }
 .sidebar nav a:hover {
   background: var(--nav-hover-bg);
-  color: #16dbcc;
+  color: var(--accent);
 }
 .sidebar nav a.active {
   background: var(--sidebar-active-bg);
@@ -156,7 +162,7 @@ body {
   width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
   padding: 5px 8px; border-radius: 6px; font-family: inherit; font-size: 0.85em; box-sizing: border-box;
 }
-.cat-search-wrap input:focus { border-color: #16dbcc; outline: none; }
+.cat-search-wrap input:focus { border-color: var(--accent); outline: none; }
 .cat-search-drop {
   display: none; position: fixed; z-index: 9999;
   background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
@@ -169,7 +175,7 @@ body {
   padding: 5px 10px; font-size: 0.85em; cursor: pointer; color: var(--text); background: var(--card);
 }
 .cat-search-drop .cat-option:hover, .cat-search-drop .cat-option.highlighted { background: var(--accent); color: #fff; }
-.cat-search-drop .cat-option.selected { color: #16dbcc; font-weight: 600; }
+.cat-search-drop .cat-option.selected { color: var(--accent); font-weight: 600; }
 .main { margin-right: 240px; flex: 1; padding: 24px; overflow-x: hidden; }
 
 /* Top bar */
@@ -264,7 +270,7 @@ th, td {
 }
 th { color: var(--text-muted); font-weight: 600; font-size: 0.85em; }
 td { font-size: 0.9em; }
-tr:hover td { background: rgba(0,212,170,0.03); }
+tr:hover td { background: rgba(22,219,204,0.04); }
 .amount-positive { color: var(--income); direction: ltr; unicode-bidi: bidi-override; }
 .amount-negative { color: var(--expense); direction: ltr; unicode-bidi: bidi-override; }
 
@@ -299,7 +305,7 @@ tr:hover td { background: rgba(0,212,170,0.03); }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
+  box-shadow: 0 0 0 3px rgba(22,219,204,0.18);
 }
 .btn {
   padding: 10px 24px;
@@ -311,12 +317,12 @@ tr:hover td { background: rgba(0,212,170,0.03); }
   transition: all 0.2s;
   font-family: inherit;
 }
-.btn-primary { background: #16dbcc; color: #1a1a2e; font-weight: 600; }
-.btn-primary:hover { background: #1aeede; }
+.btn-primary { background: var(--accent); color: var(--bg); font-weight: 600; }
+.btn-primary:hover { filter: brightness(1.08); }
 .btn-danger { background: var(--danger); color: white; }
 .btn-danger:hover { opacity: 0.9; }
-.btn-secondary { background: var(--card-hover); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--border); }
+.btn-secondary { background: var(--btn-secondary-bg); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--btn-secondary-hover); border-color: var(--btn-secondary-hover-border); }
 .btn-sm { padding: 6px 14px; font-size: 0.82em; }
 .actions { display: flex; gap: 8px; margin-top: 16px; }
 
@@ -418,7 +424,7 @@ tr:hover td { background: rgba(0,212,170,0.03); }
 }
 .theme-btn:hover { opacity: 0.8; }
 .theme-btn.active {
-  background: #16dbcc;
+  background: var(--accent);
   opacity: 1;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
@@ -555,13 +561,13 @@ body.sidebar-open { overflow: hidden; }
 .tab-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
 /* Cashflow table */
-#cf-table th:first-child, #cf-table td:first-child { position: sticky; right: 0; z-index: 2; background: var(--bg); box-shadow: -2px 0 6px rgba(0,0,0,0.3); }
-#cf-table thead th:first-child { z-index: 3; background: var(--bg); }
-.cf-section-header td { background: var(--card-hover); font-weight: 700; font-size: 0.9em; color: var(--accent); }
-.cf-section-header td:first-child { background: var(--card-hover); }
-.cf-subtotal td { font-weight: 700; border-top: 2px solid var(--border); }
-.cf-grand td { font-weight: 700; font-size: 1em; border-top: 2px solid var(--accent); background: rgba(22,219,204,0.05); }
-.cf-grand td:first-child { background: var(--bg); }
+#cf-table th:first-child, #cf-table td:first-child { position: sticky; right: 0; z-index: 2; background: var(--card); box-shadow: -2px 0 6px rgba(0,0,0,0.3); }
+#cf-table thead th:first-child { z-index: 3; background: var(--card); }
+#cf-table .cf-section-header td { background: var(--card-hover); font-weight: 700; font-size: 0.9em; color: var(--accent); }
+#cf-table .cf-section-header td:first-child { background: var(--card-hover); }
+#cf-table .cf-subtotal td { font-weight: 700; border-top: 2px solid var(--border); }
+#cf-table .cf-grand td { font-weight: 700; font-size: 1em; border-top: 2px solid var(--accent); background: rgba(22,219,204,0.05); }
+#cf-table .cf-grand td:first-child { background: var(--card); }
 .cf-sub td:first-child { padding-right: 32px; font-size: 0.85em; color: var(--text-muted); }
 .cf-positive { color: var(--income) !important; direction: ltr; unicode-bidi: bidi-override; }
 .cf-negative { color: var(--expense) !important; direction: ltr; unicode-bidi: bidi-override; }
@@ -580,7 +586,7 @@ body.sidebar-open { overflow: hidden; }
 .cf-bulk-badge .cf-badge-x { margin-right: 8px; opacity: 0.7; cursor: pointer; font-size: 1.1em; }
 .cf-bulk-badge .cf-badge-x:hover { opacity: 1; }
 .cf-bulk-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9998; }
-.cf-bulk-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 9999; direction: rtl; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 280px; }
+.cf-bulk-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); border: 2px solid var(--accent); border-radius: 12px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 9999; direction: rtl; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 280px; }
 .cf-bulk-popup input { width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-family: inherit; font-size: 1em; direction: ltr; text-align: center; box-sizing: border-box; }
 .cf-bulk-popup .cf-bulk-preview { font-size: 0.85em; color: var(--text-muted); min-height: 1.2em; direction: ltr; }
 .cf-bulk-popup .cf-bulk-btns { display: flex; gap: 8px; width: 100%; }
@@ -770,9 +776,9 @@ body.sidebar-open { overflow: hidden; }
       <div class="topbar">
         <h1>📊 לוח בקרה</h1>
         <div class="month-nav">
-          <button onclick="changeMonth(-1)">◀</button>
+          <button onclick="changeMonth(-1)" aria-label="חודש קודם">▶</button>
           <span id="current-month"></span>
-          <button onclick="changeMonth(1)">▶</button>
+          <button onclick="changeMonth(1)" aria-label="חודש הבא">◀</button>
         </div>
       </div>
 
@@ -782,7 +788,7 @@ body.sidebar-open { overflow: hidden; }
           <h3>הכנסות מול הוצאות - 6 חודשים אחרונים</h3>
           <canvas id="chart-bar"></canvas>
         </div>
-        <div class="chart-card" style="resize:vertical;overflow:auto;">
+        <div class="chart-card">
           <h3>חלוקת הוצאות לפי קטגוריה</h3>
           <div style="position:relative;max-height:300px;">
             <canvas id="chart-pie"></canvas>
@@ -794,7 +800,7 @@ body.sidebar-open { overflow: hidden; }
         </div>
       </div>
       <div class="table-card">
-        <h3>הוצאות אחרונות</h3>
+        <h3>תנועות אחרונות</h3>
         <table>
           <thead><tr><th>תאריך</th><th>תיאור</th><th>קטגוריה</th><th>מי</th><th>סכום</th></tr></thead>
           <tbody id="recent-table"></tbody>
@@ -1021,7 +1027,7 @@ body.sidebar-open { overflow: hidden; }
         </table>
       </div>
       <!-- Edit Transaction Modal -->
-      <div id="edit-tx-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditTx()">
+      <div id="edit-tx-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditTx()">
         <div class="form-card" style="width:420px;max-width:90vw;max-height:90vh;overflow-y:auto;margin:0;">
           <h3 style="margin-top:0;">עריכת תנועה</h3>
           <input type="hidden" id="edit-tx-id">
@@ -1143,7 +1149,7 @@ body.sidebar-open { overflow: hidden; }
         <div class="actions"><button class="btn btn-primary" onclick="addSaving()">💾 הוסף</button></div>
       </div>
       <!-- Edit Saving Modal -->
-      <div id="edit-sav-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditSav()">
+      <div id="edit-sav-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditSav()">
         <div class="form-card" style="width:400px;max-width:90vw;margin:0;">
           <h3 style="margin-top:0;">עריכת חיסכון / השקעה</h3>
           <input type="hidden" id="edit-sav-idx">
@@ -1938,7 +1944,7 @@ function renderRecentTable() {
       <td>${t.who || '-'}</td>
       <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${fmt(t.amount, t.type === 'income' ? '+' : '-')}</td>
     </tr>
-  `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;">אין תנועות עדיין. הוסף את ההוצאה הראשונה שלך!</td></tr>';
+  `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;">אין תנועות עדיין. הוסף את התנועה הראשונה שלך!</td></tr>';
 }
 
 // ===== ADD TRANSACTION =====
@@ -2925,7 +2931,7 @@ function renderSavings() {
   document.getElementById('savings-stats').innerHTML = `
     <div class="stat-card"><div class="label">סה"כ הושקע</div><div class="value neutral">${fmt(totalOrig)}</div></div>
     <div class="stat-card"><div class="label">שווי נוכחי</div><div class="value savings">${fmt(totalCur)}</div></div>
-    <div class="stat-card"><div class="label">רווח/הפסד</div><div class="value ${totalCur-totalOrig>=0?'income':'expense'}">${totalCur-totalOrig>=0?'+':''}${fmt(totalCur-totalOrig)}</div></div>
+    <div class="stat-card"><div class="label">רווח/הפסד</div><div class="value ${totalCur-totalOrig>=0?'income':'expense'}">${fmt(totalCur-totalOrig, totalCur-totalOrig>=0?'+':'-')}</div></div>
   `;
   document.getElementById('savings-table').innerHTML = data.savings.map((sv, i) => `
     <tr>
@@ -3375,7 +3381,9 @@ function renderCashflow() {
   const years = [...new Set([...txYears, ...fixedYears])].sort();
   if (years.length === 0) years.push(new Date().getFullYear());
   const ySel = document.getElementById('cf-year');
-  const curYear = parseInt(ySel.value) || years[years.length - 1];
+  const nowYear = new Date().getFullYear();
+  const defaultYear = years.includes(nowYear) ? nowYear : years[years.length - 1];
+  const curYear = parseInt(ySel.value) || defaultYear;
   ySel.innerHTML = years.map(y => `<option value="${y}" ${y===curYear?'selected':''}>${y}</option>`).join('');
   const year = parseInt(ySel.value) || curYear;
 
@@ -3599,8 +3607,8 @@ function renderComputedCashflow(year) {
     values.forEach((v, m) => {
       let arrow = '';
       if (budget && budget > 0 && v > 0) {
-        if (v < budget) arrow = ' <span style="color:#16dbcc;font-size:0.75em;">▼</span>';
-        else if (v > budget) arrow = ' <span style="color:#ff4d6a;font-size:0.75em;">▲</span>';
+        if (v < budget) arrow = ' <span style="color:var(--income);font-size:0.75em;">▼</span>';
+        else if (v > budget) arrow = ' <span style="color:var(--danger);font-size:0.75em;">▲</span>';
       }
       const editable = editKey && ((isCurrentYear && m >= nowMonth) || year > nowYear);
       const cfKey = editKey ? `${year}-${m}-${editKey}` : '';
@@ -3946,7 +3954,7 @@ function editCfCell(td, cfKey, currentVal) {
   popup.className = 'cf-edit-popup';
   Object.assign(popup.style, {
     position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-    zIndex: '1000', background: 'var(--card-bg)', border: '1px solid var(--accent)',
+    zIndex: '1000', background: 'var(--card)', border: '1px solid var(--accent)',
     borderRadius: '8px', padding: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
     minWidth: '160px', direction: 'rtl'
   });
